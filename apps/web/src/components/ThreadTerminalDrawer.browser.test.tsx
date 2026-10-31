@@ -150,6 +150,7 @@ vi.mock("../state/projects", async () => {
 });
 vi.mock("../layout/PaneTabs", () => ({
   LayoutPaneTab: () => null,
+  LayoutPaneTabStrip: ({ children }: { children: React.ReactNode }) => children,
   useLayoutPaneSiblingTabs: () => ({ before: [], after: [] }),
 }));
 vi.mock("../editorPreferences", () => ({ useOpenInPreferredEditor: () => () => {} }));
