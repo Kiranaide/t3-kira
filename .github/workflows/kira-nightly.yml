@@ -181,7 +181,7 @@ jobs:
           node scripts/update-release-package-versions.ts "$KIRA_VERSION"
           node scripts/build-desktop-artifact.ts --platform win --target nsis --arch x64 --build-version "$KIRA_VERSION" --skip-build --wsl-runtime wsl-runtime/*.tar.gz --output-dir release
           test -s release/nightly.yml
-          test -s "release/win-unpacked/T3 Kira.exe"
+          test -s "release/T3-Kira-$KIRA_VERSION-x64.exe"
       - name: Share the installer and update manifest
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

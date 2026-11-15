@@ -1069,7 +1069,8 @@ export function resolveWindowsServerAsarIgnoreGlobs(arch: typeof BuildArch.Type)
   ];
 }
 
-export const WINDOWS_PACKAGED_PAYLOAD_FILE_LIMIT = 80;
+// Prepared bytecode adds one loose file per bundled server module.
+export const WINDOWS_PACKAGED_PAYLOAD_FILE_LIMIT = 100;
 export const WINDOWS_SERVER_RESOURCE_SOURCE_DIR = "apps/desktop/prod-resources/windows-server";
 export const WINDOWS_SERVER_EXTRA_RESOURCES = [
   {

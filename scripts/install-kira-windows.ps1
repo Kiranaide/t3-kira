@@ -52,7 +52,7 @@ try {
       foreach ($name in @('T3CODE_DISABLE_AUTO_UPDATE', 'VITE_DEV_SERVER_URL', 'ELECTRON_RUN_AS_NODE')) {
         [Environment]::SetEnvironmentVariable($name, $null, 'Process')
       }
-      $kiraProcess = Start-Process -FilePath $executable -PassThru -WindowStyle Hidden
+      $kiraProcess = Start-Process -FilePath $executable -PassThru -WindowStyle Normal
       Write-Output "Started T3 Kira with PID $($kiraProcess.Id)."
     } finally {
       foreach ($name in $names) { [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process') }
