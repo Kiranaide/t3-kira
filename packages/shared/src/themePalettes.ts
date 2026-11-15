@@ -1,4 +1,11 @@
-export const BUILT_IN_THEME_IDS = ["t3-chat", "grove", "ocean", "ember", "iris"] as const;
+export const BUILT_IN_THEME_IDS = [
+  "t3-chat",
+  "grove",
+  "ocean",
+  "ember",
+  "iris",
+  "daylight-blue",
+] as const;
 
 export const MOBILE_DEFAULT_THEME_ID = "t3-code";
 
@@ -910,12 +917,58 @@ export const IRIS_THEME: ThemeDefinition = {
   sidebarArtwork: true,
 };
 
+const DAYLIGHT_BLUE_THEME: ThemeDefinition = {
+  id: "daylight-blue",
+  label: "Daylight Blue",
+  appearance: "light",
+  colors: {
+    ...T3_CODE_LIGHT_THEME_COLORS,
+    canvas: "#f8faff",
+    chrome: "#edf2ff",
+    toolbar: "#f2f5ff",
+    text: "#27334e",
+    textMuted: "#596986",
+    border: "#d6dff1",
+    focus: "#4569dd",
+    accent: "#4569dd",
+    accentForeground: "#ffffff",
+    secondary: "#f1eaff",
+    secondaryForeground: "#654994",
+    accentSurface: "#e6edff",
+    accentSurfaceForeground: "#3556b3",
+    messageSurface: "#e8edff",
+    messageForeground: "#26365c",
+    codeBackground: "#eef3ff",
+    codeForeground: "#293b60",
+    sidebar: "#eef3ff",
+    sidebarForeground: "#2a395c",
+    sidebarMutedForeground: "#626e8b",
+    sidebarRowHover: "#e3eaff",
+    sidebarRowActive: "#dce5ff",
+    sidebarRowSelected: "#dce5ff",
+    sidebarBorder: "#d3ddf3",
+    terminalBackground: "#f4f7ff",
+    terminalForeground: "#293b60",
+    terminalCursor: "#4569dd",
+    terminalSelection: "#d8e3ff",
+  },
+  variants: {
+    dark: {
+      ...T3_CODE_DARK_THEME_COLORS,
+      accent: "#9eb5ff",
+      accentForeground: "#182341",
+      focus: "#9eb5ff",
+    },
+  },
+};
+
 export const BUILT_IN_THEMES: ReadonlyArray<ThemeDefinition> = [
   T3_CHAT_THEME,
   GROVE_THEME,
   OCEAN_THEME,
   EMBER_THEME,
   IRIS_THEME,
+  DAYLIGHT_BLUE_THEME,
 ];
 
 export function getThemeColorsForAppearance(

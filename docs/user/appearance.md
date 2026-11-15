@@ -6,6 +6,8 @@ the corresponding preview within each theme. Appearance preferences are saved se
 device or browser.
 
 On web and desktop, use **Change theme** in the command palette to select a theme without leaving chat.
+The palette icon in the chat header opens the same theme choices and appearance modes.
+**Daylight Blue** includes a café background on web and desktop; mobile uses its color palette.
 Press **Cmd+Option+A** on macOS or **Ctrl+Alt+A** on Windows/Linux to open the theme picker directly.
 Use **Change appearance** in the command palette to choose System, Light, or Dark independently of
 the theme. **Cmd+Option+Shift+A** on macOS or **Ctrl+Alt+Shift+A** on Windows/Linux cycles through

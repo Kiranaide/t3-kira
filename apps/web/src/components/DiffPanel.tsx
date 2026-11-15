@@ -203,6 +203,7 @@ function DiffFileHeaderSuffix({
 }
 
 interface DiffPanelProps {
+  threadRef?: ScopedThreadRef;
   mode?: DiffPanelMode;
   composerDraftTarget: ScopedThreadRef | DraftId;
   workspaceMutationId: string | null;
@@ -210,6 +211,7 @@ interface DiffPanelProps {
 }
 
 export default function DiffPanel({
+  threadRef,
   mode = "inline",
   composerDraftTarget,
   workspaceMutationId,
@@ -238,7 +240,8 @@ export default function DiffPanel({
   // The open commit menu keeps the list it opened with, so rows do not move under the pointer.
   const [openCommitMenu, setOpenCommitMenu] = useState<ReviewBranchCommitsResult | null>(null);
 
-  const routeThreadRef = useThreadRouteRef();
+  const urlThreadRef = useThreadRouteRef();
+  const routeThreadRef = threadRef ?? urlThreadRef;
   const activeThreadId = routeThreadRef?.threadId ?? null;
   const activeThread = useQuietThreadShell(routeThreadRef);
   const fileAccess = useFilesystemReadAccess(activeThread?.environmentId ?? null);

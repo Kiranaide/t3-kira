@@ -214,9 +214,15 @@ it.each([
   "recovers from $name without leaving the diff panel",
   async ({ failedBaseRef, recovery, baseRef }) => {
     using context = setup(failedBaseRef);
+    state.threadRef = { ...context.threadRef, threadId: ThreadId.make("main-route-thread") };
     await using screen = await render(
       <RegistryContext.Provider value={context.registry}>
-        <DiffPanel composerDraftTarget={context.threadRef} workspaceMutationId={null} visible />
+        <DiffPanel
+          threadRef={context.threadRef}
+          composerDraftTarget={context.threadRef}
+          workspaceMutationId={null}
+          visible
+        />
       </RegistryContext.Provider>,
     );
     await expect.element(screen.getByText(errorMessage, { exact: true })).toBeVisible();

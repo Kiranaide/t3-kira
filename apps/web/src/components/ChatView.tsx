@@ -1,4 +1,6 @@
 import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
+import { ThemeSwitch } from "./ThemeSwitch";
+import { SplitChatControl, SplitChatDropTarget } from "./chat/SplitChatControl";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { resolveNewThreadModelSelection } from "@t3tools/shared/usageLimits";
@@ -417,7 +419,7 @@ type ChatViewProps =
       reserveTitleBarControlInset?: boolean;
       forceExpandedMobileComposer?: boolean;
       /** A side chat in its parent's right panel; the parent keeps the keyboard and workspace UI. */
-      embedded?: SideChatParentPanel;
+      embedded?: SideChatParentPanel | "split";
       routeKind: "server";
       draftId?: never;
     }
@@ -444,9 +446,11 @@ export default function ChatView(props: ChatViewProps) {
     onDiffPanelOpen,
     reserveTitleBarControlInset = true,
     forceExpandedMobileComposer = false,
-    embedded: parentPanel,
+    embedded: embeddedMode,
   } = props;
-  const embedded = parentPanel !== undefined;
+  const embedded = embeddedMode !== undefined;
+  const independentSplit = embeddedMode === "split";
+  const parentPanel = independentSplit ? undefined : embeddedMode;
   const canOperateThread = useEnvironmentScope(environmentId, AuthOrchestrationOperateScope);
   const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
   const draftId = routeKind === "draft" ? props.draftId : null;
@@ -3333,6 +3337,7 @@ export default function ChatView(props: ChatViewProps) {
         />
       )}
       {rightPanelControlsAtRoot && !embedded ? panelLayoutControls : null}
+      {!embedded && activeThreadRef ? <SplitChatDropTarget threadRef={activeThreadRef} /> : null}
       <div
         className={cn(
           "flex min-h-0 min-w-0 flex-col overflow-x-hidden",
@@ -3368,6 +3373,10 @@ export default function ChatView(props: ChatViewProps) {
             ) : null}
             {!rightPanelControlsAtRoot && !rightPanelControlsInPanel ? panelLayoutControls : null}
             {inlineRightPanelOwnsTitleBar ? threadPanelHeaderControl : null}
+            <div className="mr-2 flex shrink-0 items-center gap-1 [-webkit-app-region:no-drag]">
+              {activeThreadRef ? <SplitChatControl threadRef={activeThreadRef} /> : null}
+              <ThemeSwitch />
+            </div>
             <ChatHeader
               activeThreadEnvironmentId={activeThread.environmentId}
               activeThreadId={activeThread.id}
@@ -3972,8 +3981,18 @@ export default function ChatView(props: ChatViewProps) {
           </ThreadFindCanvas>
         </div>
 
-        {embedded ? null : (
+        {embedded && !independentSplit ? null : (
           <ChatTerminalDrawers
+            onlyActiveThread={independentSplit}
+            excludedThreadKeys={
+              new Set(
+                rightPanelState.surfaces.flatMap((surface) =>
+                  surface.kind === "side-chat"
+                    ? [scopedThreadKey(scopeThreadRef(environmentId, surface.threadId))]
+                    : [],
+                ),
+              )
+            }
             activeThreadKey={activeThreadKey}
             activeTerminalOpen={Boolean(terminalUiState.terminalOpen)}
             composerHeight={composerReservedHeight}
@@ -3988,9 +4007,11 @@ export default function ChatView(props: ChatViewProps) {
         )}
       </div>
 
-      {rightPanelPresent && activeThreadRef && !embedded ? (
+      {rightPanelPresent &&
+      activeThreadRef &&
+      (!embedded || (independentSplit && renderedRightPanelSurface?.kind !== "side-chat")) ? (
         <ChatRightPanel
-          sheet={shouldUsePlanSidebarSheet}
+          sheet={independentSplit || shouldUsePlanSidebarSheet}
           workspaceLayoutElement={workspaceLayoutElement}
           widthStorageKey={`t3code:preview-panel-width:${activeThreadKey}`}
           sheetAnimationDurationMs={panelAnimationsActive ? panelAnimationDurationMs : 0}
@@ -4010,7 +4031,11 @@ export default function ChatView(props: ChatViewProps) {
               </div>
             ) : null
           }
-          surfaces={renderedRightPanelSurfaces}
+          surfaces={
+            independentSplit
+              ? renderedRightPanelSurfaces.filter((surface) => surface.kind !== "side-chat")
+              : renderedRightPanelSurfaces
+          }
           environmentId={activeThreadRef.environmentId}
           activeSurfaceId={renderedRightPanelSurface?.id ?? null}
           pendingSurfaceIds={pendingFileSurfaceIds}

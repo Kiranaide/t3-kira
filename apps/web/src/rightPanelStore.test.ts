@@ -40,6 +40,26 @@ async function reloadRightPanelStore() {
 }
 
 describe("rightPanelStore", () => {
+  it("opens existing chats beside the main chat without duplicating or opening itself", async () => {
+    const store = useRightPanelStore.getState();
+    store.openSideChat(refA, refA.threadId);
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).surfaces,
+    ).toEqual([]);
+    store.openSideChat(refA, refB.threadId);
+    store.openSideChat(refA, refB.threadId);
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).surfaces,
+    ).toEqual([{ id: `side-chat:${refB.threadId}`, kind: "side-chat", threadId: refB.threadId }]);
+    await reloadRightPanelStore();
+    expect(selectActiveRightPanelSurface(useRightPanelStore.getState().byThreadKey, refA)?.id).toBe(
+      `side-chat:${refB.threadId}`,
+    );
+    useRightPanelStore.getState().closeSurface(refA, `side-chat:${refB.threadId}`);
+    expect(
+      selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, refA).surfaces,
+    ).toEqual([]);
+  });
   it("opens a hosted side chat's panel actions in its parent's panel until unhosted", () => {
     const store = useRightPanelStore.getState();
     const unhost = hostRightPanel(refB, refA);

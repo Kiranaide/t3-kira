@@ -39,6 +39,7 @@ export class DesktopEnvironment extends Context.Service<
     readonly processArch: string;
     readonly isPackaged: boolean;
     readonly isDevelopment: boolean;
+    readonly userDataDirectory?: string;
     readonly appVersion: string;
     readonly appPath: string;
     readonly resourcesPath: string;
@@ -198,6 +199,9 @@ const make = Effect.fn("desktop.environment.make")(function* (
     appDataDirectory,
     baseDir,
     stateDir,
+    ...(Option.isSome(config.userDataDirectory)
+      ? { userDataDirectory: config.userDataDirectory.value }
+      : {}),
     desktopSettingsPath: path.join(stateDir, "desktop-settings.json"),
     clientSettingsPath: path.join(stateDir, "client-settings.json"),
     savedEnvironmentRegistryPath: path.join(stateDir, "saved-environments.json"),

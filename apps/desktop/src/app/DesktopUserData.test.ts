@@ -7,6 +7,24 @@ import * as PlatformError from "effect/PlatformError";
 
 import { clearStaleGpuCaches, resolveUserDataPath } from "./DesktopUserData.ts";
 
+it.effect("uses an explicit fork profile without touching the official profile", () =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const directory = yield* fs.makeTempDirectoryScoped({ prefix: "t3-fork-profile-" });
+    const custom = path.join(directory, "fork-profile");
+    const result = yield* resolveUserDataPath({
+      appDataDirectory: directory,
+      platform: "win32",
+      isDevelopment: false,
+      userDataDirectory: custom,
+    });
+    assert.equal(result, custom);
+    assert.isTrue(yield* fs.exists(custom));
+    assert.isFalse(yield* fs.exists(path.join(directory, "t3code-v2")));
+  }).pipe(Effect.provide(NodeServices.layer)),
+);
+
 it.effect.each(["t3code", "T3 Code (Alpha)"])(
   "preserves Windows credential keys from %s without copying browser databases",
   (sourceName) =>

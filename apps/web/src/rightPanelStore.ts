@@ -735,9 +735,15 @@ export const useRightPanelStore = create<RightPanelStoreState>()(
         ),
       openSideChat: (ref, threadId) =>
         set((state) =>
-          userAction(state, scopedThreadKey(ref), (current) =>
-            upsertSurface(current, { id: `side-chat:${threadId}`, kind: "side-chat", threadId }),
-          ),
+          ref.threadId === threadId
+            ? state
+            : userAction(state, scopedThreadKey(ref), (current) =>
+                upsertSurface(current, {
+                  id: `side-chat:${threadId}`,
+                  kind: "side-chat",
+                  threadId,
+                }),
+              ),
         ),
       renameDevice: (ref, surfaceId, title) =>
         set((state) =>

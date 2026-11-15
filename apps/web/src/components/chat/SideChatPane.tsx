@@ -41,12 +41,17 @@ export default function SideChatPane(props: {
 }) {
   const { parentRef, threadId } = props;
   const threadRef = scopeThreadRef(parentRef.environmentId, threadId);
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- registers the parent panel as host in the panel store
-  useEffect(
-    () => hostRightPanel(scopeThreadRef(parentRef.environmentId, threadId), parentRef),
-    [parentRef, threadId],
-  );
   const shell = useQuietThreadShell(threadRef);
+  const isForkedSideChat =
+    shell?.lineage.sideChat === true && shell.lineage.parentThreadId === parentRef.threadId;
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- registers only a forked side chat's shared workspace panel; existing chats own their workspace actions
+  useEffect(
+    () =>
+      isForkedSideChat
+        ? hostRightPanel(scopeThreadRef(parentRef.environmentId, threadId), parentRef)
+        : undefined,
+    [parentRef, threadId, isForkedSideChat],
+  );
   const parent = useQuietThreadShell(parentRef);
   const snapshotLoaded = useEnvironmentShellHasSnapshot(parentRef.environmentId);
   const projection = useQuietThreadProjection(shell === null ? null : threadRef)?.projection;
@@ -132,33 +137,37 @@ export default function SideChatPane(props: {
         <span className="min-w-0 flex-1 truncate text-xs font-medium">
           {shell?.title ?? "Side chat"}
         </span>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="xs"
-                aria-disabled={bringBackBlockedReason !== null || bringingBack || undefined}
-                onClick={() => void bringBack()}
-              >
-                Bring back
-              </Button>
-            }
-          />
-          <TooltipPopup side="bottom">
-            {bringBackBlockedReason ?? "Adds this side chat to the main thread's next message."}
-          </TooltipPopup>
-        </Tooltip>
-        <Button
-          variant="ghost"
-          size="icon-xs"
-          aria-label="Delete side chat"
-          disabled={!canOperate || shell === null || deleting}
-          onClick={() => void deleteSideChat()}
-        >
-          <Trash2Icon />
-        </Button>
-        <Button variant="ghost" size="icon-xs" aria-label="Close side chat" onClick={props.onClose}>
+        {isForkedSideChat ? (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  aria-disabled={bringBackBlockedReason !== null || bringingBack || undefined}
+                  onClick={() => void bringBack()}
+                >
+                  Bring back
+                </Button>
+              }
+            />
+            <TooltipPopup side="bottom">
+              {bringBackBlockedReason ?? "Adds this side chat to the main thread's next message."}
+            </TooltipPopup>
+          </Tooltip>
+        ) : null}
+        {isForkedSideChat ? (
+          <Button
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Delete side chat"
+            disabled={!canOperate || shell === null || deleting}
+            onClick={() => void deleteSideChat()}
+          >
+            <Trash2Icon />
+          </Button>
+        ) : null}
+        <Button variant="ghost" size="icon-xs" aria-label="Close chat pane" onClick={props.onClose}>
           <XIcon />
         </Button>
       </div>
@@ -173,7 +182,7 @@ export default function SideChatPane(props: {
               environmentId={parentRef.environmentId}
               threadId={threadId}
               routeKind="server"
-              embedded={props.parentPanel}
+              embedded={isForkedSideChat ? props.parentPanel : "split"}
             />
           </ComposerHandleContext>
         </BackgroundThreadContext>

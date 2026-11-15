@@ -11,6 +11,8 @@ const fixture = vi.hoisted(() => ({
   allowed: new Set<string>(),
   sessions: new Map<string, string>(),
   failClose: false,
+  deleted: [] as string[],
+  lineage: null as { sideChat: boolean; parentThreadId: string | null } | null,
 }));
 vi.mock("../lib/terminalCloseConfirm", () => ({
   confirmTerminalClose: (labels: readonly string[]) => fixture.confirm(labels),
@@ -36,7 +38,7 @@ vi.mock("../state/session", () => ({
 vi.mock("../state/entities", () => ({
   useQuietThreadShell: () => null,
   useProject: () => null,
-  readThreadShell: () => null,
+  readThreadShell: () => (fixture.lineage === null ? null : { lineage: fixture.lineage }),
 }));
 vi.mock("../state/terminalSessions", () => ({ useKnownTerminalSessions: () => null }));
 vi.mock("../composerDraftStore", async () => {
@@ -54,6 +56,7 @@ vi.mock("../state/use-atom-command", () => ({
       input: { threadId: string; terminalId: string; data?: string };
     }) => {
       const key = `${request.environmentId}/${request.input.threadId}/${request.input.terminalId}`;
+      if (label === "side chat delete") fixture.deleted.push(request.input.threadId);
       if (label === "terminal close" && fixture.failClose) return { _tag: "Failure" };
       if (label === "terminal close" || label === "terminal write") fixture.sessions.delete(key);
       return { _tag: "Success" };
@@ -72,6 +75,8 @@ function setup() {
   fixture.allowed = new Set(["environment-a", "environment-b"]);
   fixture.sessions = new Map();
   fixture.failClose = false;
+  fixture.deleted = [];
+  fixture.lineage = null;
   useRightPanelStore.setState({ byThreadKey: {} });
   useTerminalUiStateStore.setState({ terminalUiStateByThreadKey: {} });
   const original: ScopedThreadRef = {
@@ -102,6 +107,31 @@ function setup() {
   }
   return { original, other, Harness, resolve };
 }
+
+it("closes an existing chat pane without deleting an unused ordinary chat", async () => {
+  const { original } = setup();
+  fixture.lineage = { sideChat: false, parentThreadId: null };
+  useRightPanelStore.getState().openSideChat(original, ThreadId.make("existing-empty-chat"));
+  const surface = selectThreadRightPanelState(
+    useRightPanelStore.getState().byThreadKey,
+    original,
+  ).surfaces.find((entry) => entry.kind === "side-chat")!;
+  function Harness() {
+    const { closeSurface } = useRightPanelSurfaceClose({
+      threadRef: original,
+      terminalLabelsById: new Map(),
+    });
+    return <button onClick={() => closeSurface(surface)}>Close chat</button>;
+  }
+  await using screen = await render(<Harness />);
+  await screen.getByRole("button", { name: "Close chat" }).click();
+  expect(fixture.deleted).toEqual([]);
+  expect(
+    selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, original).surfaces.some(
+      (entry) => entry.kind === "side-chat",
+    ),
+  ).toBe(false);
+});
 
 it.each([false, true])(
   "keeps a pending close on its original environment and thread, fallback=%s",

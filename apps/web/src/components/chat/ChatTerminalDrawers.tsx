@@ -21,6 +21,8 @@ import {
 } from "../PersistentThreadTerminals";
 
 interface ChatTerminalDrawersProps {
+  readonly onlyActiveThread?: boolean;
+  readonly excludedThreadKeys?: ReadonlySet<string>;
   readonly activeThreadKey: string | null;
   readonly activeTerminalOpen: boolean;
   readonly composerHeight: number;
@@ -64,12 +66,16 @@ export function ChatTerminalDrawers(props: ChatTerminalDrawersProps) {
     panelAnimationDurationMs,
   );
   const [mountedTerminalThreadKeys, setMountedTerminalThreadKeys] = useState<string[]>([]);
+  const canMountThread = (key: string) =>
+    (!props.onlyActiveThread || key === activeThreadKey) && !props.excludedThreadKeys?.has(key);
   const existingOpenTerminalThreadKeys = (() => {
     const existingThreadKeys = new Set<string>([...serverThreadKeys, ...draftThreadKeys]);
-    return openTerminalThreadKeys.filter((nextThreadKey) => existingThreadKeys.has(nextThreadKey));
+    return openTerminalThreadKeys.filter(
+      (nextThreadKey) => existingThreadKeys.has(nextThreadKey) && canMountThread(nextThreadKey),
+    );
   })();
   const reconciledMountedTerminalThreadKeys = reconcileMountedTerminalThreadIds({
-    currentThreadIds: mountedTerminalThreadKeys,
+    currentThreadIds: mountedTerminalThreadKeys.filter(canMountThread),
     openThreadIds: existingOpenTerminalThreadKeys,
     activeThreadId: activeThreadKey,
     activeThreadTerminalOpen: activeTerminalDrawerPresence.present,
@@ -84,6 +90,7 @@ export function ChatTerminalDrawers(props: ChatTerminalDrawersProps) {
     setMountedTerminalThreadKeys(reconciledMountedTerminalThreadKeys);
   }
   const mountedTerminalThreadRefs = mountedTerminalThreadKeys.flatMap((mountedThreadKey) => {
+    if (!canMountThread(mountedThreadKey)) return [];
     const mountedThreadRef = parseScopedThreadKey(mountedThreadKey);
     return mountedThreadRef ? [{ key: mountedThreadKey, threadRef: mountedThreadRef }] : [];
   });

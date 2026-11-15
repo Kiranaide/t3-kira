@@ -299,6 +299,12 @@ back the standard rows.
 
 ## Side chats
 
+On web and desktop, choose **Open chat beside** in the chat header to work in two existing
+chats from the same environment. You can also drag a sidebar chat onto **Drop to open chat
+beside**. Drag the panel divider to resize it, and close its tab to return to one chat.
+Each pane has its own composer; closing the pane keeps the original chat. On narrow windows,
+the second chat opens in a sheet. Dropping a chat into the composer still adds it as context.
+
 A side chat lets you ask a question about a thread without adding to it. It starts
 with what the thread knows, and the thread keeps working while you ask.
 
