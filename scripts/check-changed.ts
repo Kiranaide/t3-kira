@@ -1,4 +1,4 @@
-// @effect-diagnostics nodeBuiltinImport:off - hashes inputs, sizes the budget, and skips dependency junctions.
+// @effect-diagnostics nodeBuiltinImport:off - hashes inputs with node:crypto and sizes the budget with node:os.
 // Runs CI's fast checks for this branch's changes: format and lint of the
 // changed files, knip, generated GraphQL operations, typecheck of the affected
 // packages and their dependents, the test files beside the changed files, and
@@ -19,9 +19,7 @@
 // TIMEOUT. A rerun on exactly the files of the last passing run prints that
 // run's summary.
 import * as NodeCrypto from "node:crypto";
-import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
-import * as NodePath from "node:path";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -51,34 +49,6 @@ export const defaultConcurrency = (cores: number, availableBytes: number) =>
   Math.max(1, Math.min(Math.floor(cores / 2), Math.floor(availableBytes / (6 * GiB))));
 
 export type Outcome = "pass" | "FAIL" | "TIMEOUT";
-
-// Git follows pnpm junctions on Windows even when a pathspec excludes their files.
-export function generatedCheckInputs(root: string): Array<string> {
-  const files: Array<string> = [];
-  const directories = [{ relative: "", generated: false }];
-  while (directories.length > 0) {
-    const directory = directories.pop()!;
-    for (const entry of NodeFS.readdirSync(NodePath.join(root, directory.relative), {
-      withFileTypes: true,
-    })) {
-      if (entry.name === "node_modules" || entry.name === ".git") continue;
-      const relative = directory.relative ? `${directory.relative}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) {
-        directories.push({
-          relative,
-          generated: directory.generated || entry.name === ".generated" || entry.name === ".astro",
-        });
-      } else if (
-        directory.generated ||
-        entry.name.endsWith(".d.ts") ||
-        entry.name.startsWith(".env")
-      ) {
-        files.push(relative);
-      }
-    }
-  }
-  return files.sort();
-}
 
 export interface Step<R> {
   readonly name: string;
@@ -179,6 +149,47 @@ export const git = Effect.fn("checkChanged.git")(function* (
 });
 export const gitLines = (cwd: string, args: ReadonlyArray<string>) =>
   git(cwd, args).pipe(Effect.map((stdout) => stdout.toString().split("\n").filter(Boolean)));
+
+// Ignored files that checks read: generated sources, declarations, and env files.
+const checkInput = /(^|\/)\.(generated|astro)\/|\.d\.ts$|(^|\/)\.env[^/]*$/;
+const inNodeModules = /(^|\/)node_modules\//;
+
+// Pathspecs don't stop git from walking an ignored directory, and on Windows it follows pnpm's
+// junctions in node_modules until MAX_PATH. `--directory` lists one without entering it.
+export const ignoredCheckInputs = Effect.fn("checkChanged.ignoredCheckInputs")(function* (
+  root: string,
+) {
+  const list = (args: ReadonlyArray<string>) =>
+    git(root, ["ls-files", "-z", ...args]).pipe(
+      Effect.map((stdout) => stdout.toString().split("\0").filter(Boolean)),
+    );
+  const ignored = ["--others", "--ignored", "--exclude-standard"];
+  // `--directory` hides a directory where the index has a file; `-k` lists those.
+  const [listed, replaced] = yield* Effect.all(
+    [list([...ignored, "--directory"]), list(["-k", "--directory"])],
+    { concurrency: 2 },
+  );
+  const entries = [...new Set([...listed, ...replaced])].sort();
+  // git lists an untracked directory whose contents are all ignored together with them;
+  // listing it again would walk its node_modules.
+  const directories = entries.filter(
+    (entry, index) =>
+      entry.endsWith("/") && !inNodeModules.test(entry) && !entries[index + 1]?.startsWith(entry),
+  );
+  const files = entries.filter((entry) => !entry.endsWith("/"));
+  // Calls fit Windows' 32,767-character command line: 16 covers `:(literal)`, quotes, a space.
+  // `.git/` matches nothing; it stops git starting its walk inside a nested repository.
+  const longest = directories.reduce((max, dir) => Math.max(max, dir.length), 0);
+  const size = Math.max(1, Math.floor(30_000 / (longest + 16)));
+  for (let start = 0; start < directories.length; start += size) {
+    const batch = directories.slice(start, start + size).map((dir) => `:(literal)${dir}`);
+    files.push(...(yield* list([...ignored, "--", ":(literal).git/", ...batch])));
+  }
+  // A nested repository is listed by its directory, as the old pathspecs listed it.
+  return files
+    .filter((file) => !inNodeModules.test(file) && (file.endsWith("/") || checkInput.test(file)))
+    .sort();
+});
 
 export const comparisonBase = Effect.fn("checkChanged.comparisonBase")(function* (
   root: string,
@@ -304,13 +315,13 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         "--",
       ]),
     );
-    const generated = generatedCheckInputs(root);
+    const ignored = yield* ignoredCheckInputs(root);
     for (const file of [
       // Raw bytes of changed files too: .gitattributes normalizes line endings in
       // the diff, but the formatter reads the file as it is on disk.
       ...(yield* changedFiles),
       ...(yield* untrackedFiles),
-      ...generated,
+      ...ignored,
       "node_modules/.modules.yaml",
       "node_modules/.pnpm/lock.yaml",
     ]) {
