@@ -1,4 +1,6 @@
 import type {
+  GitActivityProviderResult,
+  SourceControlProviderAuth,
   SourceControlAppAccess,
   SourceControlProviderKind,
   SourceControlSignInError,
@@ -65,6 +67,12 @@ export interface SourceControlDriverInstance {
     Scope.Scope
   >;
   readonly signIn?: SourceControlSignIn;
+  /** Authored commits visible to the discovered accounts, grouped by the caller in UTC. */
+  readonly activity?: (input: {
+    readonly auth: SourceControlProviderAuth;
+    readonly startDate: string;
+    readonly endDate: string;
+  }) => Effect.Effect<GitActivityProviderResult>;
   /** Whether the server's account on `host` starred `repository` (`owner/name`). */
   readonly isRepositoryStarred?: (host: string, repository: string) => Effect.Effect<boolean>;
   /** Stars `repository` as the server's account on `host`; false when the forge refused. */

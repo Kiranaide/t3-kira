@@ -94,6 +94,11 @@ export class GitHubCredentials extends Context.Service<
     readonly get: (
       host: string,
     ) => Effect.Effect<GitHubCredential, GitHubCredentialUnavailableError>;
+    /** An exact CLI login; never substitute an environment token or the active account. */
+    readonly getForAccount: (
+      host: string,
+      account: string,
+    ) => Effect.Effect<GitHubCredential, GitHubCredentialUnavailableError>;
     /** The token saved in Settings for `host`, which outranks every other source. */
     readonly saved: (
       host: string,
@@ -150,7 +155,7 @@ export const make = Effect.gen(function* () {
       Effect.orDie,
     );
 
-  const fromGh = (host: string, account: string | undefined) =>
+  const fromGh = (host: string, account: string | undefined, exact = false) =>
     process
       .run({
         operation: "GitHubCredentials.get",
@@ -164,7 +169,18 @@ export const make = Effect.gen(function* () {
         ],
         cwd: workingDirectory,
         // Never let gh print the token into a debug log.
-        env: { GH_DEBUG: "", GH_PROMPT_DISABLED: "1" },
+        env: {
+          GH_DEBUG: "",
+          GH_PROMPT_DISABLED: "1",
+          ...(exact
+            ? {
+                GH_TOKEN: "",
+                GITHUB_TOKEN: "",
+                GH_ENTERPRISE_TOKEN: "",
+                GITHUB_ENTERPRISE_TOKEN: "",
+              }
+            : {}),
+        },
         timeoutMs: 10_000,
         concurrency: GH_PROCESS_CONCURRENCY,
       })
@@ -245,6 +261,20 @@ export const make = Effect.gen(function* () {
           : MISSING_TTL,
   });
 
+  const exactAccounts = yield* Cache.makeWith(
+    Effect.fn("GitHubCredentials.exactAccount")(function* (key: string) {
+      const [host = "", account = ""] = key.split("\u0000");
+      const token = yield* fromGh(host, account, true);
+      return {
+        host,
+        token: Redacted.make(token),
+        source: "gh" as const,
+        fingerprint: yield* fingerprintOf(host, token),
+      };
+    }),
+    { capacity: 32, timeToLive: (exit) => (Exit.isSuccess(exit) ? TOKEN_TTL : MISSING_TTL) },
+  );
+
   const saved = Effect.fn("GitHubCredentials.saved")(function* (rawHost: string) {
     const host = normalizeHost(rawHost);
     if (!isGitHubHost(host)) return yield* new GitHubNotSignedInError({ host });
@@ -262,6 +292,16 @@ export const make = Effect.gen(function* () {
   });
 
   return GitHubCredentials.of({
+    getForAccount: Effect.fn("GitHubCredentials.getForAccount")(function* (rawHost, account) {
+      const host = normalizeHost(rawHost);
+      if (!isGitHubHost(host) || !/^[a-z\d][a-z\d._-]*$/i.test(account)) {
+        return yield* new GitHubNotSignedInError({ host, account });
+      }
+      if ((yield* hostChoice(host))?.enabled === false) {
+        return yield* new GitHubHostDisabledError({ host });
+      }
+      return yield* Cache.get(exactAccounts, cacheKey(host, account));
+    }),
     get: Effect.fn("GitHubCredentials.get")(function* (rawHost) {
       const host = normalizeHost(rawHost);
       const fromSettings = yield* saved(host);
@@ -274,6 +314,7 @@ export const make = Effect.gen(function* () {
       const host = normalizeHost(rawHost);
       return hostChoice(host).pipe(
         Effect.flatMap((choice) => Cache.invalidate(cache, cacheKey(host, choice?.account))),
+        Effect.andThen(Cache.invalidateAll(exactAccounts)),
       );
     }),
   });

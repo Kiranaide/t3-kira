@@ -207,6 +207,7 @@ const layer = it.layer(
     Layer.provideMerge(mockHttp),
     Layer.provideMerge(
       Layer.succeed(GitHubCredentials.GitHubCredentials, {
+        getForAccount: () => Effect.die("Unexpected explicit account lookup"),
         get: (host) =>
           mockedCredential(host).pipe(
             Effect.map((held) => ({ source: "gh" as const, ...held, host })),
@@ -659,6 +660,7 @@ it.effect(
       const credentials = Layer.succeed(
         GitHubCredentials.GitHubCredentials,
         GitHubCredentials.GitHubCredentials.of({
+          getForAccount: () => Effect.die("Unexpected explicit account lookup"),
           get: (host) =>
             Effect.sync(() => ({
               host,

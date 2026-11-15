@@ -48,6 +48,7 @@ function harness(respond: (request: HttpClientRequest.HttpClientRequest) => Resp
   const credentials = Layer.succeed(
     GitHubCredentials.GitHubCredentials,
     GitHubCredentials.GitHubCredentials.of({
+      getForAccount: () => Effect.die("Unexpected explicit account lookup"),
       get: (host) =>
         Effect.sync(() => {
           credentialReads++;
@@ -112,14 +113,17 @@ describe("environmentToken", () => {
 });
 
 describe("GitHubRest", () => {
-  it.live("routes REST and GraphQL through gh's plain HTTP Unix socket", () =>
+  it.live("routes REST and GraphQL through gh's local HTTP socket", () =>
     Effect.gen(function* () {
       const directory = yield* Effect.acquireRelease(
         Effect.promise(() => NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "gh-"))),
         (directory) =>
           Effect.promise(() => NodeFSP.rm(directory, { recursive: true, force: true })),
       );
-      const socketPath = NodePath.join(directory, "api.sock");
+      const socketPath =
+        (yield* HostProcess.Platform) === "win32"
+          ? `\\\\.\\pipe\\t3-gh-${NodePath.basename(directory)}`
+          : NodePath.join(directory, "api.sock");
       const requests: Array<{
         method: string | undefined;
         path: string | undefined;
@@ -195,6 +199,14 @@ describe("GitHubRest", () => {
           ),
         );
       });
+      const closeServer = () =>
+        Effect.promise(
+          () =>
+            new Promise<void>((resolve, reject) => {
+              if (!server.listening) return resolve();
+              server.close((error) => (error ? reject(error) : resolve()));
+            }),
+        );
       yield* Effect.acquireRelease(
         Effect.promise(
           () =>
@@ -203,13 +215,7 @@ describe("GitHubRest", () => {
               server.listen(socketPath, resolve);
             }),
         ),
-        () =>
-          Effect.promise(
-            () =>
-              new Promise<void>((resolve, reject) =>
-                server.close((error) => (error ? reject(error) : resolve())),
-              ),
-          ),
+        closeServer,
       );
       const directRequests: Array<string> = [];
       const fallback = Layer.succeed(
@@ -349,7 +355,7 @@ describe("GitHubRest", () => {
         expect(requests.at(-1)?.body).toContain("query PullRequestByNumber");
         expect(yield* instance.isRepositoryStarred!("github.com", "acme/web")).toBe(true);
         expect(requests.at(-1)?.path).toBe("/user/starred/acme/web");
-        yield* Effect.promise(() => NodeFSP.unlink(socketPath));
+        yield* closeServer();
         const error = yield* Effect.flip(
           rest.rest({ host: "github.com", operation: "user", path: "user" }),
         );
@@ -409,6 +415,40 @@ describe("GitHubRest", () => {
       );
     },
   );
+
+  it.effect("keeps commit search independent from an exhausted core quota", () => {
+    const { layer, requests } = harness((request) =>
+      json(
+        { ok: true },
+        {
+          headers: {
+            "x-ratelimit-resource": request.url.includes("/search/") ? "search" : "core",
+            "x-ratelimit-limit": "5000",
+            "x-ratelimit-remaining": request.url.includes("/search/") ? "29" : "0",
+            "x-ratelimit-reset": String(NOW / 1000 + 3600),
+          },
+        },
+      ),
+    );
+    return Effect.gen(function* () {
+      yield* TestClock.setTime(NOW);
+      const api = yield* GitHubRest.GitHubRest;
+      yield* api.rest({
+        host: "github.com",
+        operation: "viewer",
+        path: "user",
+        allowReserve: false,
+      });
+      yield* api.rest({
+        host: "github.com",
+        operation: "activity",
+        path: "search/commits?q=author:test",
+        resource: "search",
+        allowReserve: false,
+      });
+      expect(requests).toHaveLength(2);
+    }).pipe(Effect.provide(layer));
+  });
 
   it.effect("traces the operation, path and quota, never the query string or the token", () => {
     const spans: Array<Tracer.NativeSpan> = [];

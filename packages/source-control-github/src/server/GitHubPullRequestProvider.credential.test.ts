@@ -28,6 +28,7 @@ it.effect("keeps branch deletion on the credential that passed source repository
     const credentials = Layer.succeed(
       GitHubCredentials.GitHubCredentials,
       GitHubCredentials.GitHubCredentials.of({
+        getForAccount: () => Effect.die("Unexpected explicit account lookup"),
         get: (host) =>
           Effect.sync(() => ({
             host,

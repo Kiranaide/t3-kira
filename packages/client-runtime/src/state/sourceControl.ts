@@ -11,6 +11,7 @@ import type { EnvironmentRegistry } from "../connection/registry.ts";
 import * as Persistence from "../platform/persistence.ts";
 import { vcsCommandConcurrency, vcsCommandScheduler } from "./vcsCommandScheduler.ts";
 import { invalidateCachedVcsRefs } from "./vcsRefInvalidation.ts";
+export { activityRepositoryKey, selectGitActivity } from "../gitActivity.ts";
 
 export function createSourceControlEnvironmentAtoms<R, E>(
   runtime: Atom.AtomRuntime<EnvironmentRegistry | Persistence.EnvironmentCacheStore | R, E>,
@@ -20,6 +21,14 @@ export function createSourceControlEnvironmentAtoms<R, E>(
     discovery: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:server:source-control-discovery",
       tag: WS_METHODS.serverDiscoverSourceControl,
+    }),
+    activity: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:server:git-activity",
+      tag: WS_METHODS.serverGetGitActivity,
+    }),
+    refreshActivity: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:server:refresh-git-activity",
+      tag: WS_METHODS.serverGetGitActivity,
     }),
     appAccess: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:source-control:app-access",

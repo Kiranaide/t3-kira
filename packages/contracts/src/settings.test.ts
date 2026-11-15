@@ -55,6 +55,25 @@ it("drops theme defaults from a client's settings patch", () => {
   ).toEqual({ newWorktreesStartFromOrigin: false });
 });
 
+it("restores shared backgrounds for older settings and validates saved image overrides", () => {
+  const settings = decodeClientSettings({});
+  expect(settings.chatBackground).toEqual({ image: null, dimming: 50, blur: 0 });
+  expect(settings.startBackground).toBeNull();
+  const background = { image: "data:image/webp;base64,YWJj", dimming: 60, blur: 8 };
+  expect(decodeClientSettingsPatch({ startBackground: background })).toEqual({
+    startBackground: background,
+  });
+  expect(decodeClientSettingsPatch({ startBackground: null })).toEqual({ startBackground: null });
+  for (const invalid of [
+    { ...background, image: "https://example.com/image.png" },
+    { ...background, image: "data:image/svg+xml;base64,YWJj" },
+    { ...background, dimming: 100 },
+    { ...background, blur: -1 },
+  ]) {
+    expect(() => decodeClientSettingsPatch({ chatBackground: invalid })).toThrow();
+  }
+});
+
 describe("storage cleanup settings", () => {
   it("keeps cleanup disabled for existing installations", () => {
     expect(decodeServerSettings({}).worktreeCleanup).toBeNull();

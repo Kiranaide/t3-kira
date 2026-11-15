@@ -36,6 +36,7 @@ import { AdvancedSettings } from "./AdvancedSettings";
 import { PanelAnimationsPreview } from "./PanelAnimationsPreview";
 import { TypographySection } from "./TypographySettings";
 import { ThreadDetailsItemsRow } from "./ThreadDetailsItemsRow";
+import { BackgroundSettings } from "./BackgroundSettings";
 
 const ENVIRONMENT_IDENTIFICATION_LABELS: Record<EnvironmentIdentificationMode, string> = {
   artwork: "Artwork",
@@ -160,6 +161,10 @@ export function AppearanceSettingsPanel() {
             onImportOpenChange={setIsImportThemeOpen}
           />
         </div>
+      </SettingsSection>
+
+      <SettingsSection id="appearance-backgrounds" title="Backgrounds">
+        <BackgroundSettings />
       </SettingsSection>
 
       <SettingsSection id="appearance-interface" title="Interface">

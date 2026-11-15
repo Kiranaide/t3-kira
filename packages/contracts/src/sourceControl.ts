@@ -166,6 +166,43 @@ export const SourceControlDiscoveryResult = Schema.Struct({
 });
 export type SourceControlDiscoveryResult = typeof SourceControlDiscoveryResult.Type;
 
+export const GitActivityAccount = Schema.Struct({
+  id: TrimmedNonEmptyString,
+  provider: SourceControlProviderKind,
+  host: TrimmedNonEmptyString,
+  login: TrimmedNonEmptyString,
+  avatarUrl: Schema.NullOr(Schema.String),
+  status: Schema.Literals(["connected", "partial", "error", "unauthenticated"]),
+  detail: Schema.NullOr(Schema.String),
+});
+export type GitActivityAccount = typeof GitActivityAccount.Type;
+
+export const GitActivityCommit = Schema.Struct({
+  provider: SourceControlProviderKind,
+  host: TrimmedNonEmptyString,
+  accountIds: Schema.Array(TrimmedNonEmptyString),
+  repository: TrimmedNonEmptyString,
+  sha: TrimmedNonEmptyString,
+  message: Schema.String,
+  authoredAt: Schema.String,
+  url: TrimmedNonEmptyString,
+});
+export type GitActivityCommit = typeof GitActivityCommit.Type;
+
+export const GitActivityProviderResult = Schema.Struct({
+  accounts: Schema.Array(GitActivityAccount),
+  commits: Schema.Array(GitActivityCommit),
+});
+export type GitActivityProviderResult = typeof GitActivityProviderResult.Type;
+
+export const GitActivityResult = Schema.Struct({
+  ...GitActivityProviderResult.fields,
+  startDate: Schema.String,
+  endDate: Schema.String,
+  fetchedAt: Schema.String,
+});
+export type GitActivityResult = typeof GitActivityResult.Type;
+
 export class SourceControlProviderError extends Schema.TaggedError<SourceControlProviderError>()(
   "SourceControlProviderError",
   {

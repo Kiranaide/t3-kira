@@ -3,6 +3,17 @@
 T3 Code integrates with GitHub, GitLab, Forgejo, Gitea, Bitbucket, Azure DevOps, GitCafe, and Cursor
 Origin to clone and publish repositories, create pull requests, and review changes.
 
+## View Git activity on Start
+
+On web and desktop, open a new chat to see Git activity below the composer.
+Connect your GitHub accounts in **Settings → Source control**. The calendar combines authored
+commits for the last 365 days in UTC. Account and date filters apply to the calendar and totals.
+Select a day or expand **History** to see commits and filter by repository.
+
+GitHub search returns at most 1,000 commits per account. The panel marks incomplete results as
+partial, so totals may be lower than your full activity. Use **Refresh Git activity** after
+changing your accounts or to fetch recent commits.
+
 ## Review turn changes
 
 A turn's changed files and diff show only the turn's own work. When a turn pulls, merges, or

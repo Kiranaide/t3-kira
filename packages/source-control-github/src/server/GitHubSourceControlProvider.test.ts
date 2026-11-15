@@ -221,6 +221,7 @@ function harness(input: {
     Layer.provide(
       Layer.mergeAll(
         Layer.succeed(GitHubCredentials.GitHubCredentials, {
+          getForAccount: () => Effect.die("Unexpected explicit account lookup"),
           get:
             input.credential ??
             ((host) =>

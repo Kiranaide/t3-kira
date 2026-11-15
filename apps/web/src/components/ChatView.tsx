@@ -286,6 +286,8 @@ import {
 import { useEnvironmentShellHasSnapshot } from "../state/shell";
 import { ChatComposer, type ChatComposerHandle } from "./chat/ChatComposer";
 import { DraftHeroHeadline } from "./chat/DraftHeroHeadline";
+import { ChatBackdrop } from "./ChatBackdrop";
+import { GitActivityPanel } from "./start/GitActivityPanel";
 import { ExpandedImageDialogHost, openExpandedImagePreview } from "./chat/ExpandedImageDialog";
 import {
   BranchRestoreConfirmHost,
@@ -3457,8 +3459,15 @@ export default function ChatView(props: ChatViewProps) {
             />
             <div
               {...conversationArea}
-              className="relative flex min-h-0 flex-1 flex-col bg-background"
+              className="relative isolate flex min-h-0 flex-1 flex-col bg-background"
             >
+              {isDraftHeroState ? (
+                <div className="pointer-events-none absolute inset-0 z-10">
+                  <ChatBackdrop surface="start" />
+                </div>
+              ) : (
+                <ChatBackdrop surface="chat" />
+              )}
               <WorkspaceMutationIdContext value={workspaceMutationId}>
                 <ThreadTimeline
                   pendingApprovals={pendingApprovals}
@@ -3583,19 +3592,23 @@ export default function ChatView(props: ChatViewProps) {
               }}
               inert={isRevertingCheckpoint}
               data-chat-composer-overlay="true"
-              className={
+              className={cn(
+                "scrollbar-gutter-both",
                 isDraftHeroState
-                  ? "pointer-events-none absolute inset-0 z-20 flex items-center [@media(max-height:34rem)]:items-end"
-                  : "pointer-events-none absolute inset-x-0 bottom-0 z-20 pt-1.5 sm:pt-2"
-              }
+                  ? "absolute inset-0 z-20 flex flex-col overflow-y-auto overscroll-contain"
+                  : "pointer-events-none absolute inset-x-0 bottom-0 z-20 pt-1.5 sm:pt-2",
+              )}
             >
-              <div ref={draftHeroTransitionGroupRef} className="chat-composer-lane w-full">
+              <div
+                ref={draftHeroTransitionGroupRef}
+                className={cn("chat-composer-lane w-full", isDraftHeroState && "my-auto py-8")}
+              >
                 <div
                   data-chat-composer-stack="true"
                   className="group/composer-stack pointer-events-auto relative z-10 mx-auto w-full max-w-(--chat-content-max-width)"
                 >
                   {isDraftHeroState ? (
-                    <div className="absolute inset-x-0 bottom-full">
+                    <div>
                       <div
                         className="pb-4 group-has-data-[composer-shoulder-tab]/composer-stack:pb-0"
                         style={
@@ -3877,10 +3890,7 @@ export default function ChatView(props: ChatViewProps) {
                         </div>
                       </ComposerSurface.Shell>
                       {isDraftHeroState && composerBannerItems.length > 0 ? (
-                        // Out of flow, like the headline, so a notice never moves the centered composer.
-                        // Short windows pin the composer to the bottom, where an out-of-flow notice
-                        // would fall off-screen, so there it takes space and lifts the composer.
-                        <div className="absolute inset-x-0 top-full flex flex-col gap-1 pt-4 [@media(max-height:34rem)]:static">
+                        <div className="flex flex-col gap-1 pt-4">
                           <ComposerBannerStack items={composerBannerItems} detached />
                         </div>
                       ) : null}
@@ -3890,6 +3900,9 @@ export default function ChatView(props: ChatViewProps) {
                       className="h-[calc(env(safe-area-inset-bottom)+1rem)] sm:h-[calc(env(safe-area-inset-bottom)+1.25rem)]"
                     />
                   </div>
+                  {isDraftHeroState ? (
+                    <GitActivityPanel key={environmentId} environmentId={environmentId} />
+                  ) : null}
                 </div>
               </div>
             </div>

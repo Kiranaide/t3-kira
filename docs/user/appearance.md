@@ -23,6 +23,15 @@ Android uses **Material You Layout** by default unless you have turned it off in
 It changes shapes, spacing, and controls independently
 of the selected theme.
 
+## Choose chat and Start backgrounds
+
+On web and desktop, choose a background image in **Settings → Appearance**.
+Adjust dimming and blur to keep conversations readable.
+
+Start uses your chat background by default. Turn off **Use chat background on Start** to choose
+a separate image and adjustments. Use **Remove** to clear an image. Backgrounds stay on the device
+or browser where you save them.
+
 ## Composer context
 
 Git-backed projects show branch and worktree controls below the composer while you create a thread.

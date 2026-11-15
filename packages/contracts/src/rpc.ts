@@ -34,6 +34,7 @@ import {
   ChatGptHandoffState,
 } from "./providerSetup.ts";
 import * as Schema from "effect/Schema";
+import { GitActivityResult } from "./sourceControl.ts";
 import * as Rpc from "effect/rpc/Rpc";
 import * as RpcGroup from "effect/rpc/RpcGroup";
 import * as RpcMiddleware from "effect/rpc/RpcMiddleware";
@@ -526,6 +527,7 @@ export const WS_METHODS = {
   serverGetSettings: "server.getSettings",
   serverUpdateSettings: "server.updateSettings",
   serverDiscoverSourceControl: "server.discoverSourceControl",
+  serverGetGitActivity: "server.getGitActivity",
   serverCheckSecretSource: "server.checkSecretSource",
   serverSearchAcpRegistry: "server.searchAcpRegistry",
   serverPrepareAcpRegistryAgent: "server.prepareAcpRegistryAgent",
@@ -884,6 +886,12 @@ const WsServerUpdateSettingsRpc = Rpc.make(WS_METHODS.serverUpdateSettings, {
 const WsServerDiscoverSourceControlRpc = Rpc.make(WS_METHODS.serverDiscoverSourceControl, {
   payload: Schema.Struct({}),
   success: SourceControlDiscoveryResult,
+  error: EnvironmentAuthorizationError,
+});
+
+const WsServerGetGitActivityRpc = Rpc.make(WS_METHODS.serverGetGitActivity, {
+  payload: Schema.Struct({ refresh: Schema.optionalKey(Schema.Boolean) }),
+  success: GitActivityResult,
   error: EnvironmentAuthorizationError,
 });
 
@@ -2148,6 +2156,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsPeerLinksUnlinkRpc,
   WsPeerLinksAnswerRequestRpc,
   WsServerDiscoverSourceControlRpc,
+  WsServerGetGitActivityRpc,
   WsServerCheckSecretSourceRpc,
   WsServerSearchAcpRegistryRpc,
   WsServerPrepareAcpRegistryAgentRpc,

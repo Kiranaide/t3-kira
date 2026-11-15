@@ -132,6 +132,30 @@ describe("GitHubCredentials", () => {
     }).pipe(Effect.provide(layer));
   });
 
+  it.effect(
+    "keeps explicit accounts separate from active, saved, and environment credentials",
+    () => {
+      vi.stubEnv("GH_TOKEN", "env-token");
+      const { layer, calls } = harness({ "github.com": { account: "personal" } }, ["gone"], {
+        "github.com": "saved-token",
+      });
+      return Effect.gen(function* () {
+        const credentials = yield* GitHubCredentials.GitHubCredentials;
+        expect(Redacted.value((yield* credentials.getForAccount("github.com", "work")).token)).toBe(
+          "token-for-work",
+        );
+        expect(Redacted.value((yield* credentials.get("github.com")).token)).toBe("saved-token");
+        expect((yield* Effect.flip(credentials.getForAccount("github.com", "gone")))._tag).toBe(
+          "GitHubNotSignedInError",
+        );
+        expect(calls).toEqual([
+          ["auth", "token", "--hostname", "github.com", "--user", "work"],
+          ["auth", "token", "--hostname", "github.com", "--user", "gone"],
+        ]);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
   it.effect("uses a token saved in Settings before GH_TOKEN and gh", () => {
     vi.stubEnv("GH_TOKEN", "env-token");
     const { layer, calls } = harness({}, [], { "github.com": "saved-token" });

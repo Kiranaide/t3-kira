@@ -87,6 +87,7 @@ const runGitHubStackAction = (send: Send, input: Parameters<typeof runStackActio
           Layer.provide(
             Layer.mergeAll(
               Layer.succeed(GitHubCredentials.GitHubCredentials, {
+                getForAccount: () => Effect.die("Unexpected explicit account lookup"),
                 get: (host) =>
                   Effect.succeed({
                     host,

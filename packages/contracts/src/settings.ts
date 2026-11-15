@@ -402,7 +402,27 @@ export const VoiceTranscriptionDestination = Schema.Union([
 ]);
 export type VoiceTranscriptionDestination = typeof VoiceTranscriptionDestination.Type;
 
+export const MAX_CHAT_BACKGROUND_IMAGE_LENGTH = 1_500_000;
+export const ChatBackgroundImage = Schema.String.check(
+  Schema.isMaxLength(MAX_CHAT_BACKGROUND_IMAGE_LENGTH),
+  Schema.isPattern(/^data:image\/(?:png|jpeg|webp|avif);base64,[a-zA-Z0-9+/]+=*$/),
+);
+export const ChatBackground = Schema.Struct({
+  image: Schema.NullOr(ChatBackgroundImage),
+  dimming: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 90 })),
+  blur: Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 24 })),
+});
+export type ChatBackground = typeof ChatBackground.Type;
+const DEFAULT_CHAT_BACKGROUND: ChatBackground = { image: null, dimming: 50, blur: 0 };
+
 export const ClientSettingsSchema = Schema.Struct({
+  chatBackground: ChatBackground.pipe(
+    Schema.withDecodingDefault(Effect.succeed(DEFAULT_CHAT_BACKGROUND)),
+  ),
+  // Null makes Start follow chat; a separate background preserves its own image and adjustments.
+  startBackground: Schema.NullOr(ChatBackground).pipe(
+    Schema.withDecodingDefault(Effect.succeed(null)),
+  ),
   notificationMode: NotificationMode.pipe(
     Schema.withDecodingDefault(Effect.succeed("off" as const)),
   ),
@@ -2032,6 +2052,8 @@ export function requiredScopesForProjectMutation(
 }
 
 export const ClientSettingsPatch = Schema.Struct({
+  chatBackground: Schema.optionalKey(ChatBackground),
+  startBackground: Schema.optionalKey(Schema.NullOr(ChatBackground)),
   notificationMode: Schema.optionalKey(NotificationMode),
   inAppNotificationsEnabled: Schema.optionalKey(Schema.Boolean),
   diffColorScheme: Schema.optionalKey(DiffColorScheme),

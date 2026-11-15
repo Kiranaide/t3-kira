@@ -11,6 +11,7 @@ import { HttpClient } from "effect/http";
 import { definition } from "../shared/definition.ts";
 
 import * as GitHubAppAccess from "./GitHubAppAccess.ts";
+import * as GitHubActivity from "./GitHubActivity.ts";
 import * as GitHubAppSignIn from "./GitHubAppSignIn.ts";
 import * as GitHubMediaFetch from "./gitHubMediaFetch.ts";
 import * as GitHubPullRequestApi from "./GitHubPullRequestApi.ts";
@@ -103,6 +104,7 @@ const makeInstance = Effect.gen(function* () {
     Effect.all({
       sourceControl: GitHubSourceControlProvider.make,
       discovery: GitHubSourceControlProvider.makeDiscovery,
+      activity: GitHubActivity.make,
       pullRequests: GitHubPullRequestProvider.make,
       fetchMedia: GitHubMediaFetch.make.pipe(
         Effect.provideService(HttpClient.HttpClient, mediaHttpClient),

@@ -1103,6 +1103,91 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
 /* Grain texture for chrome surfaces that float above the body (see the
    --surface-grain note). Layered over the element's background-color, so it
    composes with bg-* utilities. */
+@layer components {
+  .git-activity-panel {
+    @apply rounded-xl border border-border/60 bg-background/85 p-3 shadow-sm;
+  }
+
+  .git-activity-calendar {
+    display: grid;
+    width: max-content;
+    grid-template-columns: 26px auto;
+    grid-template-rows: 15px 81px;
+    column-gap: 4px;
+    font-size: 9px;
+    color: var(--muted-foreground);
+  }
+
+  .git-activity-months {
+    display: grid;
+    grid-column: 2;
+    grid-template-columns: repeat(var(--activity-weeks), 9px);
+    column-gap: 3px;
+  }
+
+  .git-activity-weekdays {
+    display: grid;
+    grid-row: 2;
+    grid-template-rows: repeat(7, 9px);
+    row-gap: 3px;
+    align-items: center;
+  }
+
+  .git-activity-weekdays span:nth-child(1) {
+    grid-row: 2;
+  }
+  .git-activity-weekdays span:nth-child(2) {
+    grid-row: 4;
+  }
+  .git-activity-weekdays span:nth-child(3) {
+    grid-row: 6;
+  }
+
+  .git-activity-days {
+    display: grid;
+    grid-column: 2;
+    grid-row: 2;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(7, 9px);
+    grid-template-columns: repeat(var(--activity-weeks), 9px);
+    gap: 3px;
+  }
+
+  .git-activity-day {
+    display: block;
+    width: 9px;
+    height: 9px;
+    flex: none;
+    border: 0;
+    border-radius: 2px;
+    background: color-mix(in oklch, var(--foreground) 9%, var(--background));
+  }
+
+  button.git-activity-day {
+    cursor: pointer;
+  }
+  .git-activity-day[data-level="1"] {
+    background: color-mix(in oklch, #8b5cf6 28%, var(--background));
+  }
+  .git-activity-day[data-level="2"] {
+    background: color-mix(in oklch, #8b5cf6 52%, var(--background));
+  }
+  .git-activity-day[data-level="3"] {
+    background: #8b5cf6;
+  }
+  .git-activity-day[data-level="4"] {
+    background: #c4b5fd;
+  }
+  .git-activity-day-selected,
+  button.git-activity-day:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 1px;
+  }
+  button.git-activity-day:hover {
+    outline: 1px solid var(--foreground);
+  }
+}
+
 @utility surface-grain {
   background-image: var(--surface-grain);
   background-repeat: repeat;

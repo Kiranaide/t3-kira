@@ -31,6 +31,7 @@ function harness(
   let invalidations = 0;
   const services = Layer.mergeAll(
     Layer.succeed(GitHubCredentials.GitHubCredentials, {
+      getForAccount: () => Effect.die("Unexpected explicit account lookup"),
       get: (host) =>
         Effect.succeed({
           host,
