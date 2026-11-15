@@ -9,7 +9,7 @@ import {
   Rows2Icon,
   XIcon,
 } from "lucide-react";
-import { useEffect, useRef, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { use, useEffect, useRef, type CSSProperties, type ReactNode, type RefObject } from "react";
 
 import {
   agentGridDimensions,
@@ -26,12 +26,13 @@ import { useQuietThreadShell } from "../state/entities";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { threadFamilies } from "../state/threads";
 import ChatView from "./ChatView";
-import { AgentWorkspaceContext } from "./chat/agentWorkspaceContext";
+import { AgentWorkspaceContext, AgentWindowVisibleContext } from "./chat/agentWorkspaceContext";
 import { BackgroundThreadContext } from "./chat/backgroundThread";
 import { SplitChatControl } from "./chat/SplitChatControl";
 import { Button } from "./ui/button";
 import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
+import { COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS } from "../workspaceTitlebar";
 
 const AGENT_LAYOUT_OPTIONS = [
   { value: "grid", label: "Grid layout", Icon: LayoutGridIcon },
@@ -93,6 +94,7 @@ function AgentWindow({
   const threadRef = scopeThreadRef(owner.environmentId, threadId);
   const shell = useQuietThreadShell(threadRef);
   const primary = threadId === owner.threadId;
+  const background = use(BackgroundThreadContext);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- holds saved secondary threads in the shell even after they leave its bounded recent list
   useEffect(
     () =>
@@ -101,82 +103,83 @@ function AgentWindow({
   );
   const label = shell?.title || "Untitled thread";
   return (
-    <section
-      aria-label={`Agent window: ${label}`}
-      aria-hidden={hidden}
-      inert={hidden}
-      data-agent-window={threadId}
-      data-active={active}
-      data-side-chat-pane={primary ? undefined : threadId}
-      className={cn(
-        "relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background",
-        tiled && "rounded-lg ring-1 ring-border",
-        tiled && active && "ring-2 ring-primary/65",
-        hidden && "hidden",
-      )}
-      onPointerDownCapture={() => {
-        if (tiled && !active) useAgentWorkspaceStore.getState().activate(owner, threadId);
-      }}
-      onFocusCapture={() => {
-        if (tiled && !active) useAgentWorkspaceStore.getState().activate(owner, threadId);
-      }}
-    >
-      {primary ? null : (
-        <header className="flex h-10 shrink-0 items-center gap-2 border-b border-border bg-muted/40 px-3">
-          <span className="min-w-0 flex-1 truncate text-xs font-medium text-muted-foreground">
-            {threadRuntimeIsActive(shell?.runtime) ? "Agent running" : "Agent window"}
-          </span>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label={focused ? `Restore ${label}` : `Focus ${label}`}
-                  onClick={() => useAgentWorkspaceStore.getState().toggleFocus(owner, threadId)}
-                />
-              }
-            >
-              {focused ? <Minimize2Icon aria-hidden /> : <Maximize2Icon aria-hidden />}
-            </TooltipTrigger>
-            <TooltipPopup>{focused ? "Restore tiled layout" : "Focus this agent"}</TooltipPopup>
-          </Tooltip>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={`Remove ${label} from workspace`}
-            onClick={() => useAgentWorkspaceStore.getState().removeWindow(owner, threadId)}
-          >
-            <XIcon aria-hidden />
-          </Button>
-        </header>
-      )}
-      {primary ? (
-        children
-      ) : shell === null ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
-          <p>This thread is unavailable.</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => useAgentWorkspaceStore.getState().removeWindow(owner, threadId)}
-          >
-            Remove window
-          </Button>
-        </div>
-      ) : (
-        <BackgroundThreadContext value>
-          <ComposerHandleContext value={null}>
-            <ChatView
-              environmentId={owner.environmentId}
-              threadId={threadId}
-              routeKind="server"
-              embedded="split"
-            />
-          </ComposerHandleContext>
-        </BackgroundThreadContext>
-      )}
-    </section>
+    <AgentWindowVisibleContext value={!hidden && !background}>
+      <BackgroundThreadContext value={background || hidden || !active}>
+        <section
+          aria-label={`Agent window: ${label}`}
+          aria-hidden={hidden}
+          inert={hidden}
+          data-agent-window={threadId}
+          data-active={active}
+          className={cn(
+            "relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background",
+            tiled && "rounded-lg ring-1 ring-border",
+            tiled && active && "ring-2 ring-primary/65",
+            hidden && "hidden",
+          )}
+          onPointerDownCapture={() => {
+            if (tiled && !active) useAgentWorkspaceStore.getState().activate(owner, threadId);
+          }}
+          onFocusCapture={() => {
+            if (tiled && !active) useAgentWorkspaceStore.getState().activate(owner, threadId);
+          }}
+        >
+          {primary ? null : (
+            <header className="flex h-10 shrink-0 items-center gap-2 border-b border-border bg-muted/40 px-3">
+              <span className="min-w-0 flex-1 truncate text-xs font-medium text-muted-foreground">
+                {threadRuntimeIsActive(shell?.runtime) ? "Agent running" : "Agent window"}
+              </span>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label={focused ? `Restore ${label}` : `Focus ${label}`}
+                      onClick={() => useAgentWorkspaceStore.getState().toggleFocus(owner, threadId)}
+                    />
+                  }
+                >
+                  {focused ? <Minimize2Icon aria-hidden /> : <Maximize2Icon aria-hidden />}
+                </TooltipTrigger>
+                <TooltipPopup>{focused ? "Restore tiled layout" : "Focus this agent"}</TooltipPopup>
+              </Tooltip>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label={`Remove ${label} from workspace`}
+                onClick={() => useAgentWorkspaceStore.getState().removeWindow(owner, threadId)}
+              >
+                <XIcon aria-hidden />
+              </Button>
+            </header>
+          )}
+          {primary ? (
+            children
+          ) : shell === null ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
+              <p>This thread is unavailable.</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => useAgentWorkspaceStore.getState().removeWindow(owner, threadId)}
+              >
+                Remove window
+              </Button>
+            </div>
+          ) : (
+            <ComposerHandleContext value={null}>
+              <ChatView
+                environmentId={owner.environmentId}
+                threadId={threadId}
+                routeKind="server"
+                embedded="split"
+              />
+            </ComposerHandleContext>
+          )}
+        </section>
+      </BackgroundThreadContext>
+    </AgentWindowVisibleContext>
   );
 }
 
@@ -347,7 +350,12 @@ export function AgentWorkspace({
         data-agent-workspace={tiled ? workspace.layout : "single"}
       >
         {tiled ? (
-          <header className="drag-region flex h-[var(--workspace-topbar-height)] shrink-0 items-center gap-2 border-b border-border bg-sidebar pl-(--workspace-gutter-start) pr-(--workspace-gutter-end) wco:pr-(--workspace-native-controls-inset)">
+          <header
+            className={cn(
+              "drag-region flex h-[var(--workspace-topbar-height)] shrink-0 items-center gap-2 border-b border-border bg-sidebar pl-(--workspace-gutter-start) pr-(--workspace-gutter-end) wco:pr-(--workspace-native-controls-inset)",
+              COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS,
+            )}
+          >
             <span className="hidden shrink-0 text-xs font-semibold sm:block">
               Agents{" "}
               <span className="ml-1 text-muted-foreground">{workspace.threadIds.length}</span>

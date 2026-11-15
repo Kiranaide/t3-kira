@@ -26,6 +26,7 @@ import { startWorkspaceFocus } from "~/lib/workspaceFocus";
 import { usePromptStashStore } from "~/promptStashStore";
 import { useRightPanelStore } from "~/rightPanelStore";
 import { useAgentWorkspaceStore } from "~/agentWorkspaceStore";
+import { useUiStateStore } from "~/uiStateStore";
 import { getRouter } from "~/router";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { environmentThreadDetails } from "~/state/threads";
@@ -584,12 +585,17 @@ it("tiles real agent conversations and sends each prompt to its own thread", asy
     sideChatOf: main.id,
     olderSettled: true as const,
   };
-  using _environment = installFakeEnvironment([main, research, review], { acceptCommands: true });
+  using _environment = installFakeEnvironment([main, research, review], {
+    acceptCommands: true,
+  });
   __setClientSettingsForTests({
     ...DEFAULT_CLIENT_SETTINGS,
     onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
   });
   const owner = scopeThreadRef(ENVIRONMENT_ID, main.id);
+  useAgentWorkspaceStore.getState().addWindow(owner, scopeThreadRef(ENVIRONMENT_ID, research.id));
+  useAgentWorkspaceStore.getState().toggleFocus(owner, research.id);
+  useRightPanelStore.getState().open(owner, "files");
   const router = getRouter(
     createMemoryHistory({ initialEntries: [`/${ENVIRONMENT_ID}/${main.id}`] }),
   );
@@ -598,6 +604,17 @@ it("tiles real agent conversations and sends each prompt to its own thread", asy
     // AppRoot owns the router and the real client providers.
     router: false,
   });
+  const researchEditor = screen.getByRole("textbox", {
+    name: `Message ${research.title}`,
+    exact: true,
+  });
+  await expect.element(researchEditor).toBeVisible();
+  expect(
+    useUiStateStore.getState().threadLastVisitedAtById[scopedThreadKey(owner)],
+  ).toBeUndefined();
+  expect(document.querySelector('[data-slot="sheet-popup"]')).toBeNull();
+  useRightPanelStore.getState().close(owner);
+  await userEvent.click(screen.getByRole("button", { name: `${main.title} Idle`, exact: true }));
   const mainEditor = screen.getByRole("textbox", { name: `Message ${main.title}`, exact: true });
   await expect.element(mainEditor).toBeVisible();
   const original = mainEditor.element();
@@ -609,15 +626,26 @@ it("tiles real agent conversations and sends each prompt to its own thread", asy
   await userEvent.click(page.getByRole("menuitem", { name: review.title, exact: true }));
   expect(mainEditor.element()).toBe(original);
   await expect.element(mainEditor).toHaveTextContent("Main draft");
-  const researchEditor = screen.getByRole("textbox", {
-    name: `Message ${research.title}`,
-    exact: true,
-  });
   await expect.element(researchEditor).toBeVisible();
   await expect
     .element(screen.getByRole("textbox", { name: `Message ${review.title}`, exact: true }))
     .toBeVisible();
   await userEvent.click(researchEditor);
+  await userEvent.keyboard("{Control>}{Alt>}B{/Alt}{/Control}");
+  expect(
+    useRightPanelStore.getState().byThreadKey[
+      scopedThreadKey(scopeThreadRef(ENVIRONMENT_ID, research.id))
+    ]?.isOpen,
+  ).toBe(true);
+  expect(useRightPanelStore.getState().byThreadKey[scopedThreadKey(owner)]?.isOpen).toBe(false);
+  await userEvent.keyboard("{Control>}{Alt>}B{/Alt}{/Control}");
+  await userEvent.click(researchEditor);
+  await userEvent.keyboard("{Control>}{Shift>}B{/Shift}{/Control}");
+  const researchDetails =
+    useRightPanelStore.getState().threadPanelVisibilityByThreadKey[
+      scopedThreadKey(scopeThreadRef(ENVIRONMENT_ID, research.id))
+    ];
+  expect(researchDetails?.inlineOpen || researchDetails?.popoverOpen).toBe(true);
   await userEvent.keyboard("Research prompt{Enter}");
   await vi.waitFor(() =>
     expect(

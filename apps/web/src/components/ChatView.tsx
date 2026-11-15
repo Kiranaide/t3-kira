@@ -1,6 +1,6 @@
 import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
 import { SplitChatDropTarget } from "./chat/SplitChatControl";
-import { AgentWorkspaceContext } from "./chat/agentWorkspaceContext";
+import { AgentWorkspaceContext, AgentWindowVisibleContext } from "./chat/agentWorkspaceContext";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { resolveNewThreadModelSelection } from "@t3tools/shared/usageLimits";
@@ -451,6 +451,7 @@ export default function ChatView(props: ChatViewProps) {
   const embedded = embeddedMode !== undefined;
   const independentSplit = embeddedMode === "split";
   const tiled = use(AgentWorkspaceContext);
+  const agentWindowVisible = use(AgentWindowVisibleContext);
   const parentPanel = independentSplit ? undefined : embeddedMode;
   const canOperateThread = useEnvironmentScope(environmentId, AuthOrchestrationOperateScope);
   const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
@@ -1096,7 +1097,7 @@ export default function ChatView(props: ChatViewProps) {
   );
   const canReuseTerminal = activeThreadKnownSessionsRaw !== null;
   const previewPanelOpen = activeRightPanelKind === "preview" && browserAvailable;
-  const rightPanelOpen = rightPanelState.isOpen;
+  const rightPanelOpen = rightPanelState.isOpen && agentWindowVisible;
   const { active: panelAnimationsActive, durationMs: panelAnimationDurationMs } =
     usePanelAnimationSettings();
   const rightPanelPresenceValue = {
@@ -2170,7 +2171,7 @@ export default function ChatView(props: ChatViewProps) {
   useFocusComposerOnThreadOpen(
     activeThreadRef,
     workspaceLayoutElement,
-    !embedded,
+    !embedded && !tiled,
     terminalUiState.terminalOpen,
     isCoarsePointer ? ignoreComposerFocus : focusComposerStable,
   );
@@ -2179,6 +2180,7 @@ export default function ChatView(props: ChatViewProps) {
   useEffect(() => {
     if (
       embedded ||
+      tiled ||
       !activeThread?.id ||
       terminalUiState.terminalOpen ||
       isMobileViewport ||
@@ -2211,6 +2213,7 @@ export default function ChatView(props: ChatViewProps) {
   }, [
     activeThread?.id,
     embedded,
+    tiled,
     focusComposerStable,
     isCoarsePointer,
     isMobileViewport,
@@ -2729,7 +2732,7 @@ export default function ChatView(props: ChatViewProps) {
     modelPickerOpen: composerRef.current?.isModelPickerOpen() ?? false,
     composerFocus:
       document.activeElement?.getAttribute("data-testid") === "composer-editor" &&
-      isInSideChatPane(document.activeElement) === embedded,
+      isInSideChatPane(document.activeElement) === (embedded && !independentSplit),
     draftThreadRoute: routeKind === "draft",
     turnRunning: phase === "running" || phase === "connecting",
     composerRequiresModifier: composerRequiresModifier(settings.sendShortcut, promptRef.current),
@@ -2750,7 +2753,7 @@ export default function ChatView(props: ChatViewProps) {
 
   useChatShortcuts({
     enabled: activeThreadId !== null && !backgroundThread,
-    embedded,
+    embedded: embedded && !independentSplit,
     composerElement: composerOverlayElement,
     keybindings,
     scriptKeybindings,
@@ -2806,14 +2809,20 @@ export default function ChatView(props: ChatViewProps) {
   // A focused desktop browser page forwards these chords as menu actions.
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to desktop bridge menu actions that toggle the right panel
   useEffect(() => {
-    if (embedded) return;
+    if ((embedded && !independentSplit) || backgroundThread) return;
     return window.desktopBridge?.onMenuAction((action) => {
       if (action === "rightPanel.toggle") toggleRightPanelStable();
       else if (action === "rightPanel.toggleMaximized") toggleRightPanelMaximizedStable();
     });
-  }, [embedded, toggleRightPanelStable, toggleRightPanelMaximizedStable]);
+  }, [
+    embedded,
+    independentSplit,
+    backgroundThread,
+    toggleRightPanelStable,
+    toggleRightPanelMaximizedStable,
+  ]);
 
-  usePasteToFocusComposer(embedded ? null : activeThreadId, composerRef);
+  usePasteToFocusComposer(embedded || tiled ? null : activeThreadId, composerRef);
   // A delegated task is a remote thread's subagent.
   const isSubagentThread =
     activeThread?.lineage.relationshipToParent === "subagent" || delegatedFrom !== null;
@@ -3339,7 +3348,7 @@ export default function ChatView(props: ChatViewProps) {
       ref={setWorkspaceLayoutElement}
       className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden bg-background"
     >
-      {embedded ? null : (
+      {embedded || !agentWindowVisible ? null : (
         <DeviceSetupDialogHost
           threadKey={activeThreadKey}
           threadRef={activeThreadRef}
@@ -3898,7 +3907,7 @@ export default function ChatView(props: ChatViewProps) {
               />
             ) : null}
 
-            {embedded && !(independentSplit && tiled) ? null : (
+            {!agentWindowVisible || (embedded && !(independentSplit && tiled)) ? null : (
               <>
                 <BranchRestoreConfirmHost
                   threadKey={activeThreadKey}
@@ -3993,7 +4002,7 @@ export default function ChatView(props: ChatViewProps) {
 
         {embedded && !independentSplit ? null : (
           <ChatTerminalDrawers
-            onlyActiveThread={independentSplit}
+            onlyActiveThread={independentSplit || tiled}
             excludedThreadKeys={
               new Set(
                 rightPanelState.surfaces.flatMap((surface) =>
@@ -4017,7 +4026,8 @@ export default function ChatView(props: ChatViewProps) {
         )}
       </div>
 
-      {rightPanelPresent &&
+      {agentWindowVisible &&
+      rightPanelPresent &&
       activeThreadRef &&
       (!embedded || (independentSplit && renderedRightPanelSurface?.kind !== "side-chat")) ? (
         <ChatRightPanel
@@ -4087,15 +4097,17 @@ export default function ChatView(props: ChatViewProps) {
         </ChatRightPanel>
       ) : null}
 
-      <RevertConfirmHost
-        threadKey={routeThreadKey}
-        checkpoints={serverProjection?.checkpoints}
-        worktreePath={activeThread?.worktreePath ?? null}
-        onConfirm={onConfirmRevertStable}
-      />
-      {embedded ? null : <LinkPullRequestDialogHost />}
-      <ThreadVisitWatermark threadRef={routeThreadRef} />
-      <ExpandedImageDialogHost threadKey={routeThreadKey} />
+      {agentWindowVisible ? (
+        <RevertConfirmHost
+          threadKey={routeThreadKey}
+          checkpoints={serverProjection?.checkpoints}
+          worktreePath={activeThread?.worktreePath ?? null}
+          onConfirm={onConfirmRevertStable}
+        />
+      ) : null}
+      {embedded || !agentWindowVisible ? null : <LinkPullRequestDialogHost />}
+      {agentWindowVisible ? <ThreadVisitWatermark threadRef={routeThreadRef} /> : null}
+      {agentWindowVisible ? <ExpandedImageDialogHost threadKey={routeThreadKey} /> : null}
     </div>
   );
   return (
