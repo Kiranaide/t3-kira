@@ -551,7 +551,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
             ConfigProvider.fromEnv({
               env: {
                 GITHUB_REPOSITORY: "pingdotgg/t3code",
-                T3CODE_DESKTOP_UPDATE_REPOSITORY: "Kiranaide/t3code",
+                T3CODE_DESKTOP_UPDATE_REPOSITORY: "Kiranaide/t3-kira",
               },
             }),
           ),
@@ -563,7 +563,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         {
           provider: "github",
           owner: "Kiranaide",
-          repo: "t3code",
+          repo: "t3-kira",
           releaseType: "prerelease",
           channel: "nightly",
         },

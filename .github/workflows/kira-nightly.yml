@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   resolve:
-    if: github.repository == 'Kiranaide/t3code' && github.ref == 'refs/heads/kira'
+    if: github.repository == 'Kiranaide/t3-kira' && github.ref == 'refs/heads/kira'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -243,7 +243,7 @@ jobs:
       - name: Publish a complete Kira release
         if: needs.resolve.outputs.build == 'true'
         run: |
-          node --input-type=module -e 'import { writeFileSync } from "node:fs"; const metadata = { product: "T3 Kira", version: process.env.KIRA_TAG.slice(1), sourceCommit: process.env.KIRA_SOURCE_SHA, upstreamRepository: "pingdotgg/t3code", upstreamTag: process.env.KIRA_UPSTREAM_TAG, upstreamCommit: process.env.KIRA_UPSTREAM_SHA }; writeFileSync("release/kira-build.json", JSON.stringify(metadata, null, 2) + "\n"); writeFileSync("release-notes.md", `T3 Kira includes split chats and Daylight Blue, with its own app data and update feed.\n\nBased on [official nightly ${metadata.upstreamTag}](https://github.com/pingdotgg/t3code/releases/tag/${metadata.upstreamTag}).\n\nSource: ${metadata.sourceCommit}\n\n[Installation and customization](https://github.com/Kiranaide/t3code/blob/kira/docs/operations/fork-windows.md).\n`);'
+          node --input-type=module -e 'import { writeFileSync } from "node:fs"; const metadata = { product: "T3 Kira", version: process.env.KIRA_TAG.slice(1), sourceCommit: process.env.KIRA_SOURCE_SHA, upstreamRepository: "pingdotgg/t3code", upstreamTag: process.env.KIRA_UPSTREAM_TAG, upstreamCommit: process.env.KIRA_UPSTREAM_SHA }; writeFileSync("release/kira-build.json", JSON.stringify(metadata, null, 2) + "\n"); writeFileSync("release-notes.md", `T3 Kira includes split chats and Daylight Blue, with its own app data and update feed.\n\nBased on [official nightly ${metadata.upstreamTag}](https://github.com/pingdotgg/t3code/releases/tag/${metadata.upstreamTag}).\n\nSource: ${metadata.sourceCommit}\n\n[Installation and customization](https://github.com/Kiranaide/t3-kira/blob/kira/docs/operations/fork-windows.md).\n`);'
           if ! gh release view "$KIRA_TAG" >/dev/null 2>&1; then
             gh release create "$KIRA_TAG" --target "$KIRA_SOURCE_SHA" --draft --prerelease --latest=false --title "T3 Kira $KIRA_TAG" --notes-file release-notes.md
           fi

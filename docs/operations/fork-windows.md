@@ -2,7 +2,7 @@
 
 T3 Kira is a personal T3 Code fork with split chats and Daylight Blue. Install it
 alongside official T3 Code. Its updater downloads Kira releases from
-[Kiranaide/t3code](https://github.com/Kiranaide/t3code/releases).
+[Kiranaide/t3-kira](https://github.com/Kiranaide/t3-kira/releases).
 
 ## Install
 
@@ -16,8 +16,16 @@ run this command from the fork checkout:
 To install a downloaded build, pass `-InstallerPath 'C:/path/to/T3-Kira-VERSION-x64.exe'`.
 
 Open **T3 Kira** from the desktop or Start menu. The initial theme is Daylight
-Blue. Change it in Settings > Appearance. Use the split control in the chat
-header, or drag a sidebar chat onto the split target, to open chats side by side.
+Blue. Change it with the palette button beside thread details, or in Settings >
+Appearance. The picker shows palette previews and lets you choose light, dark,
+or system appearance independently.
+
+Use **Manage agent windows** in the chat header, or drag a sidebar thread onto
+the split target, to tile up to four threads. Choose Grid, Columns, or Rows.
+Drag a divider to resize windows; a focused divider also accepts arrow keys.
+Focus an agent to expand it, then restore the tiled layout. Closing a window
+removes it from the workspace and keeps its conversation. Layouts are saved
+per main thread. On narrow screens, use the workspace tabs to switch agents.
 
 The installation uses these separate locations:
 
@@ -40,7 +48,7 @@ on the first installation.
 
 ## Receive official nightly changes
 
-The [T3 Kira nightly workflow](https://github.com/Kiranaide/t3code/actions/workflows/kira-nightly.yml)
+The [T3 Kira nightly workflow](https://github.com/Kiranaide/t3-kira/actions/workflows/kira-nightly.yml)
 checks for an official nightly every hour and runs when the `kira` branch changes.
 GitHub can delay scheduled runs. It merges the released official commit into a
 temporary candidate, checks the custom changes, and builds the desktop app and

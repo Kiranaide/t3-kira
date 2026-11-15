@@ -76,10 +76,10 @@ function planKiraRelease({
 
 async function prepareKiraNightly({ github, context, core }) {
   if (
-    `${context.repo.owner}/${context.repo.repo}` !== "Kiranaide/t3code" ||
+    `${context.repo.owner}/${context.repo.repo}` !== "Kiranaide/t3-kira" ||
     context.ref !== "refs/heads/kira"
   ) {
-    throw new Error("T3 Kira releases run only from Kiranaide/t3code's kira branch.");
+    throw new Error("T3 Kira releases run only from Kiranaide/t3-kira's kira branch.");
   }
   const git = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
   const upstream = await resolveLatestNightlyCommit({ github, context: { repo: UPSTREAM }, core });

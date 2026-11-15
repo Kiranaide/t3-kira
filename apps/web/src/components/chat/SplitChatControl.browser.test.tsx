@@ -3,7 +3,8 @@ import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { expect, it } from "vite-plus/test";
 
 import { act, render } from "../../../test/render";
-import { selectThreadRightPanelState, useRightPanelStore } from "../../rightPanelStore";
+import { useAgentWorkspaceStore } from "../../agentWorkspaceStore";
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { SplitChatDropTarget } from "./SplitChatControl";
 import {
   dropThreadContext,
@@ -17,7 +18,7 @@ it("drops sidebar chats into the latest pane without opening the parent or anoth
   const latest = scopeThreadRef(environmentId, ThreadId.make("latest"));
   const other = scopeThreadRef(environmentId, ThreadId.make("other"));
   const remote = scopeThreadRef(EnvironmentId.make("remote"), ThreadId.make("remote-thread"));
-  useRightPanelStore.setState({ byThreadKey: {} });
+  useAgentWorkspaceStore.setState({ byOwner: {} });
   await using screen = await render(
     <div style={{ position: "relative", width: 900, height: 500 }}>
       <SplitChatDropTarget threadRef={first} />
@@ -37,10 +38,9 @@ it("drops sidebar chats into the latest pane without opening the parent or anoth
       dropThreadContext({ x: rect.left + 10, y: rect.top + 10 }, [latest, remote, other, other]),
     ).toBe(true);
   });
-  expect(
-    selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, first).surfaces,
-  ).toEqual([]);
-  expect(
-    selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, latest).surfaces,
-  ).toEqual([{ id: `side-chat:${other.threadId}`, kind: "side-chat", threadId: other.threadId }]);
+  expect(useAgentWorkspaceStore.getState().byOwner[scopedThreadKey(first)]).toBeUndefined();
+  expect(useAgentWorkspaceStore.getState().byOwner[scopedThreadKey(latest)]?.threadIds).toEqual([
+    latest.threadId,
+    other.threadId,
+  ]);
 });

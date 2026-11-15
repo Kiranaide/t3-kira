@@ -3,6 +3,13 @@
 @import "tailwindcss";
 @import "./daylightBlue.css";
 
+.agent-resize-handle:hover,
+.agent-resize-handle:focus-visible,
+.agent-resize-handle:active {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  border-radius: 4px;
+}
+
 @custom-variant dark (&:is(.dark, .dark *));
 @custom-variant light (&:not(.dark, .dark *));
 /* Window Controls Overlay: active when Electron exposes native titlebar control geometry. */

@@ -4,7 +4,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repository = 'Kiranaide/t3code'
+$repository = 'Kiranaide/t3-kira'
 $downloadedInstaller = $null
 $releaseFile = $null
 

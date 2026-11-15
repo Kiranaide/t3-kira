@@ -3,9 +3,9 @@
 Personal T3 Code fork with split chats and Daylight Blue. It installs alongside
 official T3 Code and receives official nightly changes through checked Kira builds.
 
-[Download T3 Kira](https://github.com/Kiranaide/t3code/releases) ·
+[Download T3 Kira](https://github.com/Kiranaide/t3-kira/releases) ·
 [Install and customize](docs/operations/fork-windows.md) ·
-[Nightly builds](https://github.com/Kiranaide/t3code/actions/workflows/kira-nightly.yml)
+[Nightly builds](https://github.com/Kiranaide/t3-kira/actions/workflows/kira-nightly.yml)
 
 T3 Kira is based on the MIT-licensed T3 Code project described below.
 

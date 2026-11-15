@@ -1,5 +1,9 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
+import {
+  scopeProjectRef,
+  scopeThreadRef,
+  scopedThreadKey,
+} from "@t3tools/client-runtime/environment";
 import { EnvironmentId, RunId, ThreadId } from "@t3tools/contracts";
 import { DEFAULT_CLIENT_SETTINGS } from "@t3tools/contracts/settings";
 import {
@@ -21,6 +25,7 @@ import { environmentContextRecord } from "~/lib/composerContextRecords";
 import { startWorkspaceFocus } from "~/lib/workspaceFocus";
 import { usePromptStashStore } from "~/promptStashStore";
 import { useRightPanelStore } from "~/rightPanelStore";
+import { useAgentWorkspaceStore } from "~/agentWorkspaceStore";
 import { getRouter } from "~/router";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { environmentThreadDetails } from "~/state/threads";
@@ -562,4 +567,82 @@ it("selecting a side-chat tab focuses that side chat's composer", async () => {
   await userEvent.click(screen.getByRole("button", { name: side.title, exact: true }));
   await expect.element(sideEditor).toHaveFocus();
   await expect.element(mainEditor).toHaveTextContent("main draft");
+});
+
+it("tiles real agent conversations and sends each prompt to its own thread", async () => {
+  await import("../index.css");
+  await page.viewport(1440, 900);
+  useAgentWorkspaceStore.setState({ byOwner: {} });
+  const main = threadWithHistory("tile-main", 1);
+  const research = {
+    ...threadWithHistory("tile-research", 1),
+    sideChatOf: main.id,
+    olderSettled: true as const,
+  };
+  const review = {
+    ...threadWithHistory("tile-review", 1),
+    sideChatOf: main.id,
+    olderSettled: true as const,
+  };
+  using _environment = installFakeEnvironment([main, research, review], { acceptCommands: true });
+  __setClientSettingsForTests({
+    ...DEFAULT_CLIENT_SETTINGS,
+    onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const owner = scopeThreadRef(ENVIRONMENT_ID, main.id);
+  const router = getRouter(
+    createMemoryHistory({ initialEntries: [`/${ENVIRONMENT_ID}/${main.id}`] }),
+  );
+  await router.load();
+  await using screen = await render(<AppRoot router={router} />, {
+    // AppRoot owns the router and the real client providers.
+    router: false,
+  });
+  const mainEditor = screen.getByRole("textbox", { name: `Message ${main.title}`, exact: true });
+  await expect.element(mainEditor).toBeVisible();
+  const original = mainEditor.element();
+  await userEvent.click(mainEditor);
+  await userEvent.keyboard("Main draft");
+  await userEvent.click(screen.getByRole("button", { name: "Manage agent windows" }));
+  await userEvent.click(page.getByRole("menuitem", { name: research.title, exact: true }));
+  await userEvent.click(screen.getByRole("button", { name: "Manage agent windows" }));
+  await userEvent.click(page.getByRole("menuitem", { name: review.title, exact: true }));
+  expect(mainEditor.element()).toBe(original);
+  await expect.element(mainEditor).toHaveTextContent("Main draft");
+  const researchEditor = screen.getByRole("textbox", {
+    name: `Message ${research.title}`,
+    exact: true,
+  });
+  await expect.element(researchEditor).toBeVisible();
+  await expect
+    .element(screen.getByRole("textbox", { name: `Message ${review.title}`, exact: true }))
+    .toBeVisible();
+  await userEvent.click(researchEditor);
+  await userEvent.keyboard("Research prompt{Enter}");
+  await vi.waitFor(() =>
+    expect(
+      dispatchedCommands().some(
+        (command) => command.type === "message.dispatch" && command.threadId === research.id,
+      ),
+    ).toBe(true),
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Focus active agent" }));
+  await expect.element(original).not.toBeVisible();
+  await expect.element(researchEditor).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: "Restore tiled layout", exact: true }));
+  await expect.element(mainEditor).toHaveTextContent("Main draft");
+  const primary = screen.container.querySelector(`[data-agent-window="${main.id}"]`)!;
+  const palette = primary.querySelector('[aria-label="Change theme"]')!;
+  const details = primary.querySelector('[aria-label="Toggle thread details panel"]')!;
+  expect(palette.compareDocumentPosition(details) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await page.viewport(375, 812);
+  await expect.element(researchEditor).toBeVisible();
+  await expect.element(original).not.toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: `${main.title} Idle`, exact: true }));
+  await expect.element(mainEditor).toBeVisible();
+  expect(useAgentWorkspaceStore.getState().byOwner[scopedThreadKey(owner)]?.threadIds).toEqual([
+    main.id,
+    research.id,
+    review.id,
+  ]);
 });

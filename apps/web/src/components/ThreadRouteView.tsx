@@ -1,5 +1,9 @@
 import { useAtomValue } from "@effect/atom-react";
-import { parseScopedThreadKey, scopedThreadKey } from "@t3tools/client-runtime/environment";
+import {
+  parseScopedThreadKey,
+  scopedThreadKey,
+  scopeThreadRef,
+} from "@t3tools/client-runtime/environment";
 import { parseThreadKey, threadKey } from "@t3tools/client-runtime/state/entities";
 import { visibilityParentKey } from "@t3tools/client-runtime/state/threads";
 import type { ScopedThreadRef } from "@t3tools/contracts";
@@ -8,6 +12,7 @@ import { Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
 import ChatView from "./ChatView";
+import { AgentWorkspace } from "./AgentWorkspace";
 import { BackgroundThreadContext } from "./chat/backgroundThread";
 import { SidebarInset } from "./ui/sidebar";
 import { useComposerDraftStore } from "../composerDraftStore";
@@ -224,12 +229,18 @@ export function ThreadRouteView({
     );
   }
 
+  const workspaceOwner =
+    serverThreadRef ??
+    draftRedirect ??
+    (draftSession ? scopeThreadRef(draftSession.environmentId, draftSession.threadId) : null);
   return (
     <SidebarInset
       className="h-svh min-h-0 overflow-hidden overscroll-y-none md:h-dvh"
       inert={background}
     >
-      <BackgroundThreadContext value={background}>{view}</BackgroundThreadContext>
+      <BackgroundThreadContext value={background}>
+        {workspaceOwner ? <AgentWorkspace owner={workspaceOwner}>{view}</AgentWorkspace> : view}
+      </BackgroundThreadContext>
       {background ? null : redirect}
     </SidebarInset>
   );

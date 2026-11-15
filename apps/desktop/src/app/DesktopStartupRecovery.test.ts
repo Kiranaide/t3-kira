@@ -200,10 +200,12 @@ it.effect.each([
         expect(navigate).toBeDefined();
         navigate!({ preventDefault: () => {} }, "https://startup-recovery.invalid/reinstall");
         expect(yield* Queue.take(openedLinks)).toBe(
-          `https://github.com/Kiranaide/t3code/releases/tag/v${previousVersion}`,
+          `https://github.com/Kiranaide/t3-kira/releases/tag/v${previousVersion}`,
         );
         navigate!({ preventDefault: () => {} }, "https://startup-recovery.invalid/releases");
-        expect(yield* Queue.take(openedLinks)).toBe("https://github.com/Kiranaide/t3code/releases");
+        expect(yield* Queue.take(openedLinks)).toBe(
+          "https://github.com/Kiranaide/t3-kira/releases",
+        );
         if (closeMain) yield* Ref.set(mainRef, Option.none());
         yield* SubscriptionRef.set(state.primaryBackendStartup, { _tag: "Ready" });
         yield* Deferred.await(remembered);
