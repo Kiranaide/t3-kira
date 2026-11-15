@@ -6,6 +6,7 @@ import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
+import * as PlatformError from "effect/PlatformError";
 import * as HttpClient from "effect/http/HttpClient";
 import { ChildProcessSpawner } from "effect/process";
 import * as NetService from "@t3tools/shared/Net";
@@ -72,9 +73,13 @@ import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import * as MacPermissions from "../permissions/MacPermissions.ts";
 import * as PreviewManager from "../preview/Manager.ts";
 
-it.effect.each([false, true])(
-  "stops backends together before flushing history and cancels Linux registration, stop defect=%s",
-  (stopDefect) =>
+it.effect.each([
+  { stopDefect: false, settingsFailure: false },
+  { stopDefect: true, settingsFailure: false },
+  { stopDefect: false, settingsFailure: true },
+])(
+  "finalizes desktop startup with stopDefect=$stopDefect and settingsFailure=$settingsFailure",
+  ({ stopDefect, settingsFailure }) =>
     Effect.gen(function* () {
       const registrationStarted = yield* Deferred.make<void>();
       const releaseRegistration = yield* Deferred.make<void>();
@@ -88,6 +93,7 @@ it.effect.each([false, true])(
       const quitting = yield* Ref.make(false);
       const tokenRequested = yield* Deferred.make<void>();
       const events: string[] = [];
+      const startupErrors: string[] = [];
       const record = (event: string) =>
         Effect.sync(() => {
           events.push(event);
@@ -102,15 +108,22 @@ it.effect.each([false, true])(
           Effect.provideService(ElectronApp.ElectronApp, {
             setPath: () => Effect.void,
             whenReady: record("ready"),
+            quit: record("quit"),
           } as unknown as ElectronApp.ElectronApp["Service"]),
           Effect.provideService(ElectronDialog.ElectronDialog, {
-            showErrorBox: () => Effect.die("unexpected fatal startup error"),
+            showErrorBox: (_title: string, content: string) =>
+              settingsFailure
+                ? Effect.sync(() => {
+                    startupErrors.push(content);
+                  })
+                : Effect.die("unexpected fatal startup error"),
           } as unknown as ElectronDialog.ElectronDialog["Service"]),
           Effect.provideService(DesktopEnvironment.DesktopEnvironment, {
             platform: "linux",
             isDevelopment: false,
             isPackaged: true,
             stateDir: "/isolated/userdata",
+            serverSettingsPath: "/isolated/userdata/settings.json",
             configuredBackendPort: Option.some(3773),
             defaultDesktopSettings: { serverExposureMode: "local-only" },
           } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]),
@@ -246,7 +259,19 @@ it.effect.each([false, true])(
                 throw new Error("unexpected browser partition lookup");
               },
             }),
-            FileSystem.layerNoop({}),
+            FileSystem.layerNoop({
+              exists: () => Effect.succeed(!settingsFailure),
+              makeDirectory: () => Effect.void,
+              writeFileString: (path) =>
+                Effect.fail(
+                  PlatformError.systemError({
+                    _tag: "PermissionDenied",
+                    module: "FileSystem",
+                    method: "writeFileString",
+                    pathOrDescriptor: path,
+                  }),
+                ),
+            }),
             Layer.mock(NetService.NetService, {}),
             Path.layer,
             Layer.succeed(
@@ -257,6 +282,20 @@ it.effect.each([false, true])(
         ),
         Effect.forkScoped,
       );
+      const shutdown = yield* DesktopShutdown.DesktopShutdown;
+      if (settingsFailure) {
+        yield* Deferred.succeed(releaseStops, undefined);
+        yield* Deferred.succeed(releaseHistory, undefined);
+        const result = yield* Fiber.await(app);
+        assert.isTrue(Exit.isFailure(result));
+        assert.lengthOf(startupErrors, 1);
+        assert.include(startupErrors[0]!, "PermissionDenied");
+        assert.isTrue(yield* Ref.get(quitting));
+        assert.include(events, "quit");
+        assert.notInclude(events, "backend");
+        assert.isTrue(yield* shutdown.isComplete);
+        return;
+      }
       yield* Deferred.await(registrationStarted);
       yield* Deferred.await(windowStarted);
       yield* Deferred.await(tokenRequested);
@@ -267,7 +306,6 @@ it.effect.each([false, true])(
       );
       assert.isAbove(events.indexOf("token"), events.indexOf("backend"));
       assert.isFalse(yield* Deferred.isDone(registrationStopped));
-      const shutdown = yield* DesktopShutdown.DesktopShutdown;
       yield* shutdown.request;
       yield* Deferred.await(firstStopStarted);
       yield* Deferred.await(secondStopStarted);

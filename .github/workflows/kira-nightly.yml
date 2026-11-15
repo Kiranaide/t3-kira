@@ -1,0 +1,260 @@
+name: T3 Kira nightly
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  push:
+    branches: [kira]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even when the current nightly is already published
+        type: boolean
+        default: false
+
+concurrency:
+  group: t3-kira-nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    if: github.repository == 'Kiranaide/t3code' && github.ref == 'refs/heads/kira'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      build: ${{ steps.prepare.outputs.build }}
+      version: ${{ steps.prepare.outputs.version }}
+      tag: ${{ steps.prepare.outputs.tag }}
+      source_sha: ${{ steps.prepare.outputs.source_sha }}
+      upstream_tag: ${{ steps.prepare.outputs.upstream_tag }}
+      upstream_sha: ${{ steps.prepare.outputs.upstream_sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: kira
+          fetch-depth: 0
+          sparse-checkout: |
+            /*
+            !/.repos/
+          sparse-checkout-cone-mode: false
+      - name: Resolve and merge the official nightly
+        id: prepare
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          KIRA_FORCE: ${{ inputs.force }}
+        with:
+          script: |
+            await require('./.github/scripts/kira-nightly.cjs').prepareKiraNightly({ github, context, core });
+      - name: Share the exact candidate
+        if: steps.prepare.outputs.build == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kira-candidate
+          path: ${{ runner.temp }}/kira-candidate.bundle
+          if-no-files-found: error
+          retention-days: 3
+
+  linux_runtime:
+    needs: resolve
+    if: needs.resolve.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      KIRA_VERSION: ${{ needs.resolve.outputs.version }}
+      KIRA_SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
+      KIRA_UPSTREAM_SHA: ${{ needs.resolve.outputs.upstream_sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: kira
+          fetch-depth: 0
+          sparse-checkout: |
+            /*
+            !/.repos/
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kira-candidate
+          path: ${{ runner.temp }}/kira-candidate
+      - name: Verify and check out the candidate
+        run: |
+          git fetch "$RUNNER_TEMP/kira-candidate/kira-candidate.bundle" kira-candidate
+          test "$(git rev-parse FETCH_HEAD)" = "$KIRA_SOURCE_SHA"
+          git checkout --detach FETCH_HEAD
+      - uses: ./.github/actions/setup-ci-deps
+        with:
+          install-args: --frozen-lockfile
+      - name: Install browser test prerequisites
+        run: node apps/web/node_modules/playwright/cli.js install --with-deps --only-shell chromium
+      - name: Check changes against the official nightly
+        run: vp run check:changed "$KIRA_UPSTREAM_SHA" --concurrency 2
+      - name: Build the shared desktop bundle
+        run: |
+          cp .env.example .env
+          node scripts/update-release-package-versions.ts "$KIRA_VERSION"
+          vp run build:desktop:bundle
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+      - name: Build the Linux resource monitor
+        run: cargo build --locked --release --manifest-path native/resource-monitor/Cargo.toml --target x86_64-unknown-linux-gnu
+      - name: Build and verify the WSL runtime
+        run: |
+          node apps/server/scripts/cli.ts build-exe --verbose
+          mkdir -p "$RUNNER_TEMP/kira-monitor/linux-x64"
+          cp native/resource-monitor/target/x86_64-unknown-linux-gnu/release/t3-resource-monitor "$RUNNER_TEMP/kira-monitor/linux-x64/"
+          sudo apt-get update
+          sudo apt-get install -y patchelf
+          node scripts/build-cli-archive.ts --platform linux --arch x64 --version "$KIRA_VERSION" --resource-monitor-dir "$RUNNER_TEMP/kira-monitor" --output-dir release-cli
+          node scripts/smoke-cli-archive.ts --archive release-cli/*.tar.gz --expect-version "$KIRA_VERSION"
+      - name: Share the desktop bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kira-js-bundle
+          path: |
+            apps/server/dist
+            apps/desktop/dist-electron
+          if-no-files-found: error
+          retention-days: 3
+      - name: Share the WSL runtime
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kira-wsl-runtime
+          path: release-cli/*.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+
+  windows:
+    needs: [resolve, linux_runtime]
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      KIRA_VERSION: ${{ needs.resolve.outputs.version }}
+      KIRA_SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
+      T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
+      T3CODE_DESKTOP_REUSE_RESOURCE_MONITOR: "true"
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: kira
+          fetch-depth: 0
+          sparse-checkout: |
+            /*
+            !/.repos/
+          sparse-checkout-cone-mode: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kira-candidate
+          path: ${{ runner.temp }}/kira-candidate
+      - name: Verify and check out the candidate
+        run: |
+          git fetch "$RUNNER_TEMP/kira-candidate/kira-candidate.bundle" kira-candidate
+          test "$(git rev-parse FETCH_HEAD)" = "$KIRA_SOURCE_SHA"
+          git checkout --detach FETCH_HEAD
+      - uses: ./.github/actions/setup-ci-deps
+        with:
+          install-args: --frozen-lockfile
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+      - name: Build the Windows resource monitor
+        run: cargo build --locked --release --manifest-path native/resource-monitor/Cargo.toml --target x86_64-pc-windows-msvc
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kira-js-bundle
+          path: apps
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: kira-wsl-runtime
+          path: wsl-runtime
+      - name: Package T3 Kira and its updater
+        run: |
+          cp .env.example .env
+          node scripts/update-release-package-versions.ts "$KIRA_VERSION"
+          node scripts/build-desktop-artifact.ts --platform win --target nsis --arch x64 --build-version "$KIRA_VERSION" --skip-build --wsl-runtime wsl-runtime/*.tar.gz --output-dir release
+          test -s release/nightly.yml
+          test -s "release/win-unpacked/T3 Kira.exe"
+      - name: Share the installer and update manifest
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kira-windows-installer
+          path: |
+            release/T3-Kira-*.exe
+            release/T3-Kira-*.blockmap
+            release/nightly.yml
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [resolve, windows]
+    if: always() && !cancelled() && needs.resolve.result == 'success' && (needs.resolve.outputs.build != 'true' || needs.windows.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      KIRA_TAG: ${{ needs.resolve.outputs.tag }}
+      KIRA_SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
+      KIRA_UPSTREAM_TAG: ${{ needs.resolve.outputs.upstream_tag }}
+      KIRA_UPSTREAM_SHA: ${{ needs.resolve.outputs.upstream_sha }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        if: needs.resolve.outputs.build == 'true'
+        with:
+          ref: kira
+          fetch-depth: 0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.resolve.outputs.build == 'true'
+        with:
+          name: kira-candidate
+          path: ${{ runner.temp }}/kira-candidate
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: needs.resolve.outputs.build == 'true'
+        with:
+          name: kira-windows-installer
+          path: release
+      - name: Integrate the verified candidate
+        if: needs.resolve.outputs.build == 'true'
+        env:
+          KIRA_SYNC_SSH_KEY: ${{ secrets.KIRA_SYNC_SSH_KEY }}
+        run: |
+          git fetch "$RUNNER_TEMP/kira-candidate/kira-candidate.bundle" kira-candidate
+          test "$(git rev-parse FETCH_HEAD)" = "$KIRA_SOURCE_SHA"
+          git checkout --detach FETCH_HEAD
+          test -n "$KIRA_SYNC_SSH_KEY"
+          key_file="$RUNNER_TEMP/kira-sync-key"
+          hosts_file="$RUNNER_TEMP/kira-known-hosts"
+          trap 'rm -f "$key_file"' EXIT
+          printf '%s\n' "$KIRA_SYNC_SSH_KEY" > "$key_file"
+          chmod 600 "$key_file"
+          gh api meta --jq '.ssh_keys[] | "github.com " + .' > "$hosts_file"
+          export GIT_SSH_COMMAND="ssh -i '$key_file' -o IdentitiesOnly=yes -o UserKnownHostsFile='$hosts_file' -o StrictHostKeyChecking=yes"
+          git push "git@github.com:$GH_REPO.git" HEAD:refs/heads/kira
+      - name: Publish a complete Kira release
+        if: needs.resolve.outputs.build == 'true'
+        run: |
+          node --input-type=module -e 'import { writeFileSync } from "node:fs"; const metadata = { product: "T3 Kira", version: process.env.KIRA_TAG.slice(1), sourceCommit: process.env.KIRA_SOURCE_SHA, upstreamRepository: "pingdotgg/t3code", upstreamTag: process.env.KIRA_UPSTREAM_TAG, upstreamCommit: process.env.KIRA_UPSTREAM_SHA }; writeFileSync("release/kira-build.json", JSON.stringify(metadata, null, 2) + "\n"); writeFileSync("release-notes.md", `T3 Kira includes split chats and Daylight Blue, with its own app data and update feed.\n\nBased on [official nightly ${metadata.upstreamTag}](https://github.com/pingdotgg/t3code/releases/tag/${metadata.upstreamTag}).\n\nSource: ${metadata.sourceCommit}\n\n[Installation and customization](https://github.com/Kiranaide/t3code/blob/kira/docs/operations/fork-windows.md).\n`);'
+          if ! gh release view "$KIRA_TAG" >/dev/null 2>&1; then
+            gh release create "$KIRA_TAG" --target "$KIRA_SOURCE_SHA" --draft --prerelease --latest=false --title "T3 Kira $KIRA_TAG" --notes-file release-notes.md
+          fi
+          gh release edit "$KIRA_TAG" --target "$KIRA_SOURCE_SHA" --title "T3 Kira $KIRA_TAG" --notes-file release-notes.md
+          gh release upload "$KIRA_TAG" release/T3-Kira-*.exe release/T3-Kira-*.blockmap release/nightly.yml release/kira-build.json --clobber
+          gh release edit "$KIRA_TAG" --draft=false --prerelease --latest=false
+      - name: Maintain the Kira update pointer
+        run: |
+          gh api "repos/$GH_REPO/releases/tags/$KIRA_TAG" --jq '{tag_name, name, body}' > nightly.json
+          if ! gh release view update-feed >/dev/null 2>&1; then
+            gh release create update-feed --prerelease --latest=false --title "T3 Kira update feed" --notes "T3 Kira's updater reads nightly.json here. Keep this release public."
+          fi
+          gh release upload update-feed nightly.json --clobber
+          gh release edit update-feed --draft=false --prerelease --latest=false

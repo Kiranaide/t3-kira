@@ -4,6 +4,8 @@ import * as Path from "effect/Path";
 import * as PlatformError from "effect/PlatformError";
 import * as Schema from "effect/Schema";
 
+import { KIRA_APP_NAME, KIRA_PACKAGE_NAME } from "@t3tools/shared/kiraIdentity";
+
 export class DesktopUserDataInitializationError extends Schema.TaggedError<DesktopUserDataInitializationError>()(
   "DesktopUserDataInitializationError",
   {
@@ -52,8 +54,8 @@ export const resolveUserDataPath = Effect.fn("desktop.userData.resolveUserDataPa
       return directory;
     }
     const names = input.isDevelopment
-      ? { current: "t3code-dev", legacy: "T3 Code (Dev)" }
-      : { current: "t3code-v2", legacy: "T3 Code (Alpha)" };
+      ? { current: `${KIRA_PACKAGE_NAME}-dev`, legacy: `${KIRA_APP_NAME} (Dev)` }
+      : { current: `${KIRA_PACKAGE_NAME}-v2`, legacy: `${KIRA_APP_NAME} (Alpha)` };
     const destinationPath = path.join(input.appDataDirectory, names.current);
     const legacyPath = path.join(input.appDataDirectory, names.legacy);
     const inspect = (resourcePath: string) =>
@@ -74,7 +76,7 @@ export const resolveUserDataPath = Effect.fn("desktop.userData.resolveUserDataPa
     const legacyState = path.join(legacyPath, "Local State");
     const sourceState = (yield* inspect(legacyState))
       ? legacyState
-      : path.join(input.appDataDirectory, "t3code", "Local State");
+      : path.join(input.appDataDirectory, KIRA_PACKAGE_NAME, "Local State");
     if (!(yield* inspect(sourceState))) return destinationPath;
     // Windows safeStorage keys live here. Copy only these preferences, never locked databases.
     const state = yield* fs

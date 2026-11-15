@@ -7,11 +7,22 @@ import * as PlatformError from "effect/PlatformError";
 
 import { clearStaleGpuCaches, resolveUserDataPath } from "./DesktopUserData.ts";
 
-it.effect("uses an explicit fork profile without touching the official profile", () =>
+it.effect("isolates default and explicit fork profiles from the official profile", () =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const directory = yield* fs.makeTempDirectoryScoped({ prefix: "t3-fork-profile-" });
+    const official = path.join(directory, "t3code", "Local State");
+    yield* fs.makeDirectory(path.dirname(official), { recursive: true });
+    yield* fs.writeFileString(official, "official credential keys");
+    const defaultProfile = yield* resolveUserDataPath({
+      appDataDirectory: directory,
+      platform: "win32",
+      isDevelopment: false,
+    });
+    assert.equal(defaultProfile, path.join(directory, "t3-kira-v2"));
+    assert.isFalse(yield* fs.exists(path.join(defaultProfile, "Local State")));
+    assert.equal(yield* fs.readFileString(official), "official credential keys");
     const custom = path.join(directory, "fork-profile");
     const result = yield* resolveUserDataPath({
       appDataDirectory: directory,
@@ -25,7 +36,7 @@ it.effect("uses an explicit fork profile without touching the official profile",
   }).pipe(Effect.provide(NodeServices.layer)),
 );
 
-it.effect.each(["t3code", "T3 Code (Alpha)"])(
+it.effect.each(["t3-kira", "T3 Kira (Alpha)"])(
   "preserves Windows credential keys from %s without copying browser databases",
   (sourceName) =>
     Effect.gen(function* () {
@@ -33,9 +44,9 @@ it.effect.each(["t3code", "T3 Code (Alpha)"])(
       const path = yield* Path.Path;
       const directory = yield* fs.makeTempDirectoryScoped({ prefix: "t3-v2-profile-" });
       const source = path.join(directory, sourceName);
-      const destination = path.join(directory, "t3code-v2");
+      const destination = path.join(directory, "t3-kira-v2");
       const state = '{"os_crypt":{"encrypted_key":"test-encrypted-key"}}';
-      yield* fs.makeDirectory(path.join(directory, "T3 Code (Alpha)"), { recursive: true });
+      yield* fs.makeDirectory(path.join(directory, "T3 Kira (Alpha)"), { recursive: true });
       yield* fs.makeDirectory(path.join(source, "IndexedDB"), { recursive: true });
       yield* fs.writeFileString(path.join(source, "Local State"), state);
       yield* fs.writeFileString(path.join(source, "IndexedDB", "LOCK"), "V1 owns this database");
@@ -116,7 +127,7 @@ it.effect("keeps GPU caches built on the first launch of a fresh install", () =>
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const appData = yield* fs.makeTempDirectoryScoped({ prefix: "t3-v2-fresh-" });
-    const userDataPath = path.join(appData, "t3code-v2");
+    const userDataPath = path.join(appData, "t3-kira-v2");
 
     yield* clearStaleGpuCaches({ userDataPath, electronVersion: "44.10.1" });
     yield* fs.makeDirectory(path.join(userDataPath, "GPUCache"));

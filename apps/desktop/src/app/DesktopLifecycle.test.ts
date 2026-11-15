@@ -265,7 +265,7 @@ describe("DesktopLifecycle", () => {
           "/opt/T3 Code/t3code",
           "--no-sandbox",
           "T3CODE://pair?token=spent",
-          "t3code://new?prompt=hello",
+          "t3kira://new?prompt=hello",
         ]),
       );
 

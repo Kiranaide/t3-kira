@@ -1,30 +1,87 @@
-# Personal Windows fork
+# T3 Kira on Windows
 
-Use the **T3 Code Fork** shortcut on the desktop or in the Start menu. It launches the
-installed custom build with a separate T3 home and Chromium profile. The official T3 Code
-shortcut continues to launch the official build.
+T3 Kira is a personal T3 Code fork with split chats and Daylight Blue. Install it
+alongside official T3 Code. Its updater downloads Kira releases from
+[Kiranaide/t3code](https://github.com/Kiranaide/t3code/releases).
 
-The fork starts with Daylight Blue. Change it from the palette icon in the chat header or
-Settings → Appearance. The split icon opens another chat from the same environment beside
-the current one. Dragging a sidebar chat onto the split target does the same thing.
+## Install
 
-Official automatic updates are disabled in the fork launcher so they cannot replace local
-changes. To update the fork, integrate upstream changes into your branch, run the checks,
-build a Windows desktop artifact using the repository's packaging tools, close the fork,
-and replace only its installation directory. Keep its data and profile directories.
-
-After building a `win-unpacked` desktop artifact, create or refresh the shortcuts with:
+Download the Windows x64 installer from the latest **T3 Kira** nightly release, or
+run this command from the fork checkout:
 
 ```powershell
-./scripts/install-fork-windows.ps1 -AppDirectory 'C:/path/to/win-unpacked' -MakeDefault -Launch
+./scripts/install-kira-windows.ps1 -Launch
 ```
 
-The installer defaults to `~/.t3-fork` for app data and
-`%LOCALAPPDATA%/T3 Code Fork/profile` for Chromium. It creates the initial theme setting
-only when settings do not exist, preserving later theme choices. It does not replace the
-official install, register a background service, or change the official database.
+To install a downloaded build, pass `-InstallerPath 'C:/path/to/T3-Kira-VERSION-x64.exe'`.
 
-`-MakeDefault` redirects existing desktop and Start menu shortcuts that point to the official
-installation. It saves their originals under `~/.t3-fork/shortcut-backups` and adds a
-**T3 Code Official** shortcut as a fallback. Existing pinned taskbar entries may still point
-to the official executable; pin **T3 Code Fork** instead.
+Open **T3 Kira** from the desktop or Start menu. The initial theme is Daylight
+Blue. Change it in Settings > Appearance. Use the split control in the chat
+header, or drag a sidebar chat onto the split target, to open chats side by side.
+
+The installation uses these separate locations:
+
+| Purpose            | Location                          |
+| ------------------ | --------------------------------- |
+| Application        | `%LOCALAPPDATA%/Programs/t3-kira` |
+| App data           | `%USERPROFILE%/.t3-kira/userdata` |
+| Browser profile    | `%APPDATA%/t3-kira-v2`            |
+| Installer identity | `com.kiranaide.t3kira`            |
+
+Official T3 Code keeps its own installation, shortcuts, data, and update feed.
+Kira starts with its own projects and conversations. Provider CLIs can still use
+the credentials already configured on this computer.
+
+WSL backends use `~/.t3-kira/userdata` inside the selected Linux distribution,
+with a separate runtime cache. Development uses `~/.t3-kira-dev` there.
+
+Kira releases are unsigned. Windows can show a publisher or SmartScreen prompt
+on the first installation.
+
+## Receive official nightly changes
+
+The [T3 Kira nightly workflow](https://github.com/Kiranaide/t3code/actions/workflows/kira-nightly.yml)
+checks for an official nightly every hour and runs when the `kira` branch changes.
+GitHub can delay scheduled runs. It merges the released official commit into a
+temporary candidate, checks the custom changes, and builds the desktop app and
+its WSL runtime from that same candidate. Only successful builds are integrated
+into `kira` and published to Kira's update feed.
+
+Keep Kira's update channel on **Nightly**. Use the app's update controls to
+download and apply a published Kira build.
+
+A merge conflict, failed check, or failed build stops publication. The installed
+app and last successful release remain available. Resolve the failure in the
+fork, push the correction, and run the workflow again. The workflow's **force**
+option rebuilds the current nightly when a new release is needed.
+
+Each release includes `kira-build.json` with its source commit and official
+nightly tag. The `update-feed` release contains the updater's `nightly.json`
+pointer. Keep that release public.
+
+## Customize
+
+Keep custom changes on `kira`. Before editing, fetch and fast-forward the latest
+verified integration:
+
+```powershell
+git switch kira
+git pull --ff-only origin kira
+```
+
+Edit the layout or features, run focused checks and `vp run check:changed`, then
+commit and push to `origin kira`. The workflow builds a new Kira release.
+
+The official remote remains `upstream`. Avoid replacing the customization branch
+with `upstream/main`, because that discards the fork's changes. The workflow
+imports released nightly commits so Kira follows what official nightly users
+actually received.
+
+Scheduled workflows run from the repository's default branch. Set `kira` as the
+default branch and enable **T3 Kira nightly** in GitHub Actions. Public forks can
+have scheduled workflows disabled after 60 days without repository activity;
+re-enable this workflow if GitHub pauses it.
+
+The workflow uses the repository's write-enabled deploy key stored in the
+`KIRA_SYNC_SSH_KEY` Actions secret to import upstream workflow changes. Keep that
+key limited to this fork and available to the publication job.

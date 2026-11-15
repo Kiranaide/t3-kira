@@ -1,6 +1,7 @@
 import { fromLenientJson } from "@t3tools/shared/schemaJson";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
+import { KIRA_APP_ID } from "@t3tools/shared/kiraIdentity";
 
 import {
   DEFAULT_LINUX_PASSWORD_STORE,
@@ -31,7 +32,7 @@ export interface EarlyLinuxElectronOptions {
 }
 
 export const resolveLinuxDesktopEntryName = (isDevelopment: boolean): string =>
-  isDevelopment ? "com.t3tools.T3Code.Development.desktop" : "com.t3tools.T3Code.desktop";
+  `${KIRA_APP_ID}${isDevelopment ? ".Development" : ""}.desktop`;
 
 const trimNonEmpty = (value: string | undefined): string | null => {
   const trimmed = value?.trim();

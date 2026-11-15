@@ -1,4 +1,4 @@
-// @effect-diagnostics nodeBuiltinImport:off - hashes inputs with node:crypto and sizes the budget with node:os.
+// @effect-diagnostics nodeBuiltinImport:off - hashes inputs, sizes the budget, and skips dependency junctions.
 // Runs CI's fast checks for this branch's changes: format and lint of the
 // changed files, knip, generated GraphQL operations, typecheck of the affected
 // packages and their dependents, the test files beside the changed files, and
@@ -19,7 +19,9 @@
 // TIMEOUT. A rerun on exactly the files of the last passing run prints that
 // run's summary.
 import * as NodeCrypto from "node:crypto";
+import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
+import * as NodePath from "node:path";
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -49,6 +51,34 @@ export const defaultConcurrency = (cores: number, availableBytes: number) =>
   Math.max(1, Math.min(Math.floor(cores / 2), Math.floor(availableBytes / (6 * GiB))));
 
 export type Outcome = "pass" | "FAIL" | "TIMEOUT";
+
+// Git follows pnpm junctions on Windows even when a pathspec excludes their files.
+export function generatedCheckInputs(root: string): Array<string> {
+  const files: Array<string> = [];
+  const directories = [{ relative: "", generated: false }];
+  while (directories.length > 0) {
+    const directory = directories.pop()!;
+    for (const entry of NodeFS.readdirSync(NodePath.join(root, directory.relative), {
+      withFileTypes: true,
+    })) {
+      if (entry.name === "node_modules" || entry.name === ".git") continue;
+      const relative = directory.relative ? `${directory.relative}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        directories.push({
+          relative,
+          generated: directory.generated || entry.name === ".generated" || entry.name === ".astro",
+        });
+      } else if (
+        directory.generated ||
+        entry.name.endsWith(".d.ts") ||
+        entry.name.startsWith(".env")
+      ) {
+        files.push(relative);
+      }
+    }
+  }
+  return files.sort();
+}
 
 export interface Step<R> {
   readonly name: string;
@@ -274,24 +304,13 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         "--",
       ]),
     );
-    const ignored = yield* lines(
-      "ls-files",
-      "--others",
-      "--ignored",
-      "--exclude-standard",
-      "--",
-      ":(glob)**/.generated/**",
-      ":(glob)**/.astro/**",
-      ":(glob)**/*.d.ts",
-      ":(glob)**/.env*",
-      ":(exclude,glob)**/node_modules/**",
-    );
+    const generated = generatedCheckInputs(root);
     for (const file of [
       // Raw bytes of changed files too: .gitattributes normalizes line endings in
       // the diff, but the formatter reads the file as it is on disk.
       ...(yield* changedFiles),
       ...(yield* untrackedFiles),
-      ...ignored,
+      ...generated,
       "node_modules/.modules.yaml",
       "node_modules/.pnpm/lock.yaml",
     ]) {

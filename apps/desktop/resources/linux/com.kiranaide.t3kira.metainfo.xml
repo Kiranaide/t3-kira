@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.kiranaide.t3kira</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>T3 Kira</name>
+  <summary>Desktop GUI for coding agents</summary>
+  <developer id="com.kiranaide">
+    <name>Kiranaide</name>
+  </developer>
+  <description>
+    <p>T3 Kira is a personal fork of T3 Code with split chats and Daylight Blue.</p>
+  </description>
+  <launchable type="desktop-id">t3-kira.desktop</launchable>
+  <icon type="stock">t3-kira</icon>
+  <provides>
+    <binary>t3-kira</binary>
+  </provides>
+  <categories>
+    <category>Development</category>
+  </categories>
+  <url type="homepage">https://github.com/Kiranaide/t3code</url>
+  <url type="bugtracker">https://github.com/Kiranaide/t3code/issues</url>
+  <url type="vcs-browser">https://github.com/Kiranaide/t3code</url>
+</component>

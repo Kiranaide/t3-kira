@@ -5,6 +5,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Queue from "effect/Queue";
 import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
 import * as SubscriptionRef from "effect/SubscriptionRef";
@@ -107,11 +108,15 @@ it.effect.each([
     Effect.gen(function* () {
       const checked = yield* Deferred.make<void>();
       const remembered = yield* Deferred.make<void>();
+      const openedLinks = yield* Queue.unbounded<string>();
+      const previousVersion = "0.1.10-nightly.20261114.1000";
+      const currentVersion = "0.1.10-nightly.20261115.4723";
       const shouldRecover = !visible || !started;
       const closed = Promise.withResolvers<void>();
       const loaded: string[] = [];
       const appListeners = new Map<string, (...args: readonly unknown[]) => void>();
       const mainListeners = new Map<string, () => void>();
+      const recoveryListeners = new Map<string, (...args: readonly unknown[]) => void>();
       let closeCount = 0;
       let mainVisible = visible;
       const main = {
@@ -132,7 +137,11 @@ it.effect.each([
           return Promise.resolve();
         },
         once: () => {},
-        webContents: { setWindowOpenHandler: () => {}, on: () => {} },
+        webContents: {
+          setWindowOpenHandler: () => {},
+          on: (event: string, listener: (...args: readonly unknown[]) => void) =>
+            recoveryListeners.set(event, listener),
+        },
       } as unknown as Electron.BrowserWindow;
       const state = yield* DesktopState.DesktopState;
       if (started) yield* SubscriptionRef.set(state.primaryBackendStartup, { _tag: "Ready" });
@@ -140,11 +149,11 @@ it.effect.each([
         Effect.provide(
           Layer.mergeAll(
             FileSystem.layerNoop({
-              readFileString: () => Effect.succeed("0.1.2"),
+              readFileString: () => Effect.succeed(previousVersion),
               writeFileString: () => Deferred.succeed(remembered, undefined).pipe(Effect.asVoid),
             }),
             Layer.succeed(DesktopEnvironment.DesktopEnvironment, {
-              appVersion: "0.1.3",
+              appVersion: currentVersion,
               stateDir: "/task/state",
               logDir: "/task/logs",
               path: { join: (...parts: string[]) => parts.join("/") },
@@ -155,10 +164,9 @@ it.effect.each([
                   appListeners.set(event, listener);
                 }),
             } as unknown as ElectronApp.ElectronApp["Service"]),
-            Layer.succeed(
-              ElectronShell.ElectronShell,
-              {} as ElectronShell.ElectronShell["Service"],
-            ),
+            Layer.succeed(ElectronShell.ElectronShell, {
+              openExternal: (url: unknown) => Queue.offer(openedLinks, String(url)),
+            } as ElectronShell.ElectronShell["Service"]),
             Layer.succeed(ElectronTheme.ElectronTheme, {
               shouldUseDarkColors: Effect.succeed(false),
             } as ElectronTheme.ElectronTheme["Service"]),
@@ -168,7 +176,7 @@ it.effect.each([
             } as unknown as ElectronWindow.ElectronWindow["Service"]),
             Layer.succeed(DesktopUpdates.DesktopUpdates, {
               subscribe: Effect.succeed({
-                latest: updateState({ status: "disabled" }),
+                latest: updateState({ status: "disabled", currentVersion }),
                 changes: Stream.empty,
               }),
               check: () => Deferred.succeed(checked, undefined),
@@ -188,6 +196,14 @@ it.effect.each([
       expect(loaded.length).toBe(shouldRecover ? 1 : 0);
       if (shouldRecover) {
         expect(decodeURIComponent(loaded[0]!)).toContain("Failure details");
+        const navigate = recoveryListeners.get("will-navigate");
+        expect(navigate).toBeDefined();
+        navigate!({ preventDefault: () => {} }, "https://startup-recovery.invalid/reinstall");
+        expect(yield* Queue.take(openedLinks)).toBe(
+          `https://github.com/Kiranaide/t3code/releases/tag/v${previousVersion}`,
+        );
+        navigate!({ preventDefault: () => {} }, "https://startup-recovery.invalid/releases");
+        expect(yield* Queue.take(openedLinks)).toBe("https://github.com/Kiranaide/t3code/releases");
         if (closeMain) yield* Ref.set(mainRef, Option.none());
         yield* SubscriptionRef.set(state.primaryBackendStartup, { _tag: "Ready" });
         yield* Deferred.await(remembered);

@@ -19,6 +19,7 @@ import {
   comparisonBase,
   defaultConcurrency,
   docReaderTests,
+  generatedCheckInputs,
   gitLines,
   runSteps,
   splitTests,
@@ -428,6 +429,19 @@ function launcherFixture() {
     },
   };
 }
+
+it("collects generated inputs without traversing dependency junctions", () => {
+  using project = launcherFixture();
+  const inputs = [
+    ".env.local",
+    "apps/web/.astro/environment.d.ts",
+    "apps/mobile/.generated/client/index.js",
+    "packages/example/local.d.ts",
+  ];
+  for (const input of inputs) project.write(input, "generated input");
+  project.write("packages/example/node_modules/ignored.d.ts", "dependency");
+  expect(generatedCheckInputs(project.root)).toEqual(inputs.sort());
+});
 
 it("checks changed source paths through the Windows launcher", () => {
   using project = launcherFixture();
