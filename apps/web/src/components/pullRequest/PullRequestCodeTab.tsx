@@ -1248,7 +1248,7 @@ function PullRequestCodeTab({
         {orderedCommits.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={<Button size="xs" variant="ghost" />}
+              render={<Button size="sm" variant="ghost" />}
               className="min-w-0 max-w-64 shrink"
               aria-label={`Diff scope: ${scopeLabel}`}
             >
@@ -1489,7 +1489,7 @@ function PullRequestCodeTab({
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- retries the reveal as diff pages and viewer items arrive
   }, [revealUrl, pendingLinkPath, canLoadNextSlice, items]);
   const withToolbar = (body: ReactNode) => (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col">
       {toolbarView}
       <div ref={scrollerRef} className="min-h-0 flex-1 overflow-auto">
         {body}
@@ -1534,7 +1534,7 @@ function PullRequestCodeTab({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-col">
       {toolbarView}
       {orphanFiles.size > 0 ? (
         <div className="shrink-0 border-b border-border">
@@ -1622,6 +1622,7 @@ function PullRequestCodeTab({
           {/* The viewer must own its scroll element to position virtual rows within it. */}
           <FileViewedToggleContext value={fileViewedToggle}>
             <StyledDiffCodeView<ReviewAnnotationGroup>
+              surface="cards"
               className="@container h-full overflow-auto [--surface-top-inset:0px] [scrollbar-gutter:stable]"
               {...(scrollerRef ? { containerRef: scrollerRef } : {})}
               viewerRef={codeViewReveal.attach}
