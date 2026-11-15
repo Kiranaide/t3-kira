@@ -1,14 +1,14 @@
 import { useClientSettings } from "../hooks/useSettings";
 
 export function ChatBackdrop({ surface }: { readonly surface: "chat" | "start" }) {
-  const background = useClientSettings((settings) =>
-    surface === "start"
-      ? (settings.startBackground ?? settings.chatBackground)
-      : settings.chatBackground,
-  );
+  const background = useClientSettings((settings) => settings.chatBackground);
   if (background.image === null) return null;
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
+    <div
+      data-background-surface={surface}
+      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      aria-hidden
+    >
       <img
         alt=""
         src={background.image}

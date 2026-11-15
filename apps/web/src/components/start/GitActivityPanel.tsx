@@ -81,13 +81,13 @@ function BackgroundButton() {
   return (
     <Dialog>
       <DialogTrigger
-        render={<Button variant="ghost" size="icon-xs" aria-label="Customize backgrounds" />}
+        render={<Button variant="ghost" size="icon-xs" aria-label="Customize background" />}
       >
         <ImageIcon />
       </DialogTrigger>
       <DialogPopup>
         <DialogHeader>
-          <DialogTitle>Chat & Start backgrounds</DialogTitle>
+          <DialogTitle>Background</DialogTitle>
         </DialogHeader>
         <DialogPanel>
           <BackgroundSettings />
@@ -541,6 +541,12 @@ export function GitActivityPanel({
           <span className="hidden text-2xs text-muted-foreground sm:inline">Welcome back</span>
         </div>
         <div className="flex items-center gap-0.5">
+          <Link
+            to="/settings/source-control"
+            className="rounded px-2 py-1 text-2xs text-muted-foreground hover:text-foreground"
+          >
+            Manage accounts
+          </Link>
           <BackgroundButton />
           <Button
             variant="ghost"

@@ -1,6 +1,9 @@
 import type { EnvironmentId, SourceControlProviderAuth } from "@t3tools/contracts";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
+import { useAtomValue } from "@effect/atom-react";
+import { AuthTerminalOperateScope } from "@t3tools/contracts";
+import { useEnvironmentScope } from "../../state/session";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
 import { serverEnvironment } from "../../state/server";
@@ -17,6 +20,10 @@ import {
 import { redactedPlaceholder } from "./RedactedSensitiveText";
 
 /** Sentinel select value for "follow the CLI's active login"; logins never contain spaces. */
+const SetupTerminal = lazy(() =>
+  import("../SetupTerminal").then((module) => ({ default: module.SetupTerminal })),
+);
+
 const ACTIVE_ACCOUNT = "active cli account";
 
 function RedactedLogin(props: {
@@ -59,6 +66,9 @@ export function SourceControlAccountSettings({
   });
   const [saving, setSaving] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const config = useAtomValue(serverEnvironment.configValueAtom(environmentId));
+  const canUseTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
+  const [addingAccount, setAddingAccount] = useState(false);
   const groups = groupHostAccounts(auth.accounts ?? []);
 
   const save = async (
@@ -80,18 +90,56 @@ export function SourceControlAccountSettings({
     if (result._tag === "Success") onSaved();
   };
 
+  const accountSetup =
+    definition.kind === "github" ? (
+      <div className="grid gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!canUseTerminal || config === null}
+          onClick={() => setAddingAccount(true)}
+        >
+          Add GitHub account
+        </Button>
+        {addingAccount && config !== null ? (
+          <Suspense
+            fallback={<p className="text-xs text-muted-foreground">Opening sign-in terminal?</p>}
+          >
+            <SetupTerminal
+              session={{
+                environmentId,
+                driver: "GitHub sign-in",
+                cwd: config.cwd,
+                keybindings: config.keybindings,
+                command: "gh auth login --hostname github.com --web",
+              }}
+              onCommandFinished={onSaved}
+              onClose={() => {
+                setAddingAccount(false);
+                onSaved();
+              }}
+            />
+          </Suspense>
+        ) : null}
+      </div>
+    ) : null;
+
   if (groups.length === 0) {
     return (
-      <p className="text-xs text-muted-foreground">
-        Sign in with{" "}
-        <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.loginCommand}</code> on
-        the server host, then rescan to choose accounts here.
-      </p>
+      <div className="grid gap-3">
+        {accountSetup}
+        <p className="text-xs text-muted-foreground">
+          Sign in with{" "}
+          <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.loginCommand}</code>{" "}
+          on the server host, then rescan to choose accounts here.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="grid gap-4">
+      {accountSetup}
       <div className="flex items-center justify-between gap-3">
         <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
           Choose which <code className="rounded bg-muted px-1 py-px text-2xs">{cliName}</code> login

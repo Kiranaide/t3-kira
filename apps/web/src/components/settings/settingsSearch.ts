@@ -324,15 +324,9 @@ export const SETTINGS_SEARCH_ITEMS = [
   {
     // Prefixed because the slider control already owns the `appearance-contrast` id.
     id: "chat-background",
-    title: "Chat background",
+    title: "Background",
     to: "/settings/appearance",
-    searchTerms: ["wallpaper image upload dimming blur"],
-  },
-  {
-    id: "start-background",
-    title: "Use chat background on Start",
-    to: "/settings/appearance",
-    searchTerms: ["wallpaper image start home dashboard background dimming blur"],
+    searchTerms: ["wallpaper image upload dimming blur start home dashboard chat background"],
   },
   {
     id: "setting-appearance-contrast",

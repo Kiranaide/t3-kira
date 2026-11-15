@@ -3461,13 +3461,7 @@ export default function ChatView(props: ChatViewProps) {
               {...conversationArea}
               className="relative isolate flex min-h-0 flex-1 flex-col bg-background"
             >
-              {isDraftHeroState ? (
-                <div className="pointer-events-none absolute inset-0 z-10">
-                  <ChatBackdrop surface="start" />
-                </div>
-              ) : (
-                <ChatBackdrop surface="chat" />
-              )}
+              <ChatBackdrop surface={isDraftHeroState ? "start" : "chat"} />
               <WorkspaceMutationIdContext value={workspaceMutationId}>
                 <ThreadTimeline
                   pendingApprovals={pendingApprovals}

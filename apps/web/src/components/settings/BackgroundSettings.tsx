@@ -9,7 +9,6 @@ import {
 import { persistClientSettingsUpdate, useClientSettings } from "../../hooks/useSettings";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import { Button } from "../ui/button";
-import { Switch } from "../ui/switch";
 import { toastManager } from "../ui/toast";
 import { SettingsRow } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
@@ -50,7 +49,7 @@ function BackgroundEditor({
   onChange,
   disabled = false,
 }: {
-  readonly label: "Chat" | "Start";
+  readonly label: string;
   readonly background: ChatBackground;
   readonly onChange: (patch: Partial<ChatBackground>) => void;
   readonly disabled?: boolean;
@@ -177,55 +176,21 @@ function BackgroundEditor({
 }
 
 export function BackgroundSettings() {
-  const { chatBackground, startBackground } = useClientSettings((settings) => ({
-    chatBackground: settings.chatBackground,
-    startBackground: settings.startBackground,
-  }));
-  const save = (update: (current: ClientSettings) => ClientSettings) => {
-    void persistClientSettingsUpdate(update).catch(reportBackgroundError);
-  };
-  const changeChat = useStableCallback((patch: Partial<ChatBackground>) =>
-    save((current) => ({
+  const background = useClientSettings((settings) => settings.chatBackground);
+  const change = useStableCallback((patch: Partial<ChatBackground>) => {
+    void persistClientSettingsUpdate((current: ClientSettings) => ({
       ...current,
       chatBackground: { ...current.chatBackground, ...patch },
-    })),
-  );
-  const changeStart = useStableCallback((patch: Partial<ChatBackground>) =>
-    save((current) =>
-      current.startBackground === null
-        ? current
-        : { ...current, startBackground: { ...current.startBackground, ...patch } },
-    ),
-  );
+      startBackground: null,
+    })).catch(reportBackgroundError);
+  });
   return (
     <div className="space-y-5">
       <SettingsRow
         {...searchableSetting("chat-background")}
-        description="Choose a background image for conversations. Saved on this device."
+        description="Start and conversations use your theme background. An optional image applies to both. Saved on this device."
       />
-      <BackgroundEditor label="Chat" background={chatBackground} onChange={changeChat} />
-      <SettingsRow
-        {...searchableSetting("start-background")}
-        description="Start uses your chat background unless you choose a separate one."
-        control={
-          <Switch
-            aria-label="Use chat background on Start"
-            checked={startBackground === null}
-            onCheckedChange={(shared) =>
-              save((current) => ({
-                ...current,
-                startBackground: shared ? null : { ...current.chatBackground },
-              }))
-            }
-          />
-        }
-      />
-      <BackgroundEditor
-        label="Start"
-        background={startBackground ?? chatBackground}
-        disabled={startBackground === null}
-        onChange={changeStart}
-      />
+      <BackgroundEditor label="Background" background={background} onChange={change} />
     </div>
   );
 }
