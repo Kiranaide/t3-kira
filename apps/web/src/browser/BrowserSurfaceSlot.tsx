@@ -3,6 +3,12 @@ import { useLayoutEffect, useRef } from "react";
 import { acquireBrowserSurface } from "./browserSurfaceStore";
 import { observeResize } from "../lib/observeResize";
 
+const SURFACE_MOVED_EVENT = "t3-browser-surface-moved";
+
+export function refreshBrowserSurfacePositions(container: HTMLElement) {
+  window.dispatchEvent(new CustomEvent(SURFACE_MOVED_EVENT, { detail: container }));
+}
+
 export function BrowserSurfaceSlot(props: {
   readonly tabId: string;
   readonly visible: boolean;
@@ -66,10 +72,16 @@ export function BrowserSurfaceSlot(props: {
     // Sidebar width changes move the slot without changing its size or column offset.
     observed.push(...document.querySelectorAll('[data-slot="sidebar-gap"]'));
     const stopObserving = observeResize(observed, update);
+    const onSurfaceMoved = (event: Event) => {
+      const container = (event as CustomEvent<HTMLElement>).detail;
+      if (container.contains(element)) update();
+    };
+    window.addEventListener(SURFACE_MOVED_EVENT, onSurfaceMoved);
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
     return () => {
       stopObserving();
+      window.removeEventListener(SURFACE_MOVED_EVENT, onSurfaceMoved);
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
       if (updateRef.current === update) updateRef.current = null;

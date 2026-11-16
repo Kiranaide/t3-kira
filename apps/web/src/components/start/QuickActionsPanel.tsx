@@ -1,3 +1,4 @@
+import { refreshBrowserSurfacePositions } from "~/browser/BrowserSurfaceSlot";
 import { GAMES, useGameWindow, type Game } from "./quickGameWindowStore";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
@@ -117,6 +118,7 @@ export function GameWindowHost() {
             element.style.top = `${Math.max(40, Math.min(window.innerHeight - 80, start.top + event.clientY - start.y))}px`;
             element.style.right = "auto";
             element.style.bottom = "auto";
+            refreshBrowserSurfacePositions(element);
           }}
           onPointerUp={() => {
             drag.current = null;
