@@ -74,6 +74,9 @@ function startClientAppearance(): void {
     const settings = getClientSettings();
     const previous = applied;
     applied = settings;
+    if (previous?.chatBackground.image !== settings.chatBackground.image) {
+      root.toggleAttribute("data-workspace-background", settings.chatBackground.image !== null);
+    }
     const separateFonts = readLocalStorageValue(
       TYPOGRAPHY_ADVANCED_STORAGE_KEY,
       false,

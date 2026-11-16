@@ -6,6 +6,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
+import { KIRA_APP_SCHEME, KIRA_DEV_SCHEME } from "@t3tools/shared/kiraIdentity";
 
 import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
 import * as DesktopAssets from "./DesktopAssets.ts";
@@ -80,6 +81,7 @@ export function renderUrlHandlerDesktopEntry(input: {
   readonly displayName: string;
   readonly execTarget: string;
   readonly scheme: string;
+  readonly additionalSchemes?: readonly string[];
   readonly iconPath?: string;
 }): string {
   return [
@@ -91,7 +93,7 @@ export function renderUrlHandlerDesktopEntry(input: {
     "Terminal=false",
     "NoDisplay=true",
     "StartupNotify=false",
-    `MimeType=x-scheme-handler/${input.scheme};`,
+    `MimeType=${[input.scheme, ...(input.additionalSchemes ?? [])].map((scheme) => `x-scheme-handler/${scheme};`).join("")}`,
     "",
   ].join("\n");
 }
@@ -154,6 +156,7 @@ export const make = Effect.gen(function* () {
   const assets = yield* DesktopAssets.DesktopAssets;
 
   const scheme = ElectronProtocol.getDesktopScheme(environment.isDevelopment);
+  const linkScheme = environment.isDevelopment ? KIRA_DEV_SCHEME : KIRA_APP_SCHEME;
   const desktopEntryPath = environment.path.join(
     environment.linuxApplicationsDir,
     environment.linuxDesktopEntryName,
@@ -176,6 +179,7 @@ export const make = Effect.gen(function* () {
       displayName: environment.displayName,
       execTarget,
       scheme,
+      additionalSchemes: [linkScheme],
       ...(environment.isPackaged ? { iconPath } : {}),
     });
     // Avoid truncating the pre-ready entry while the portal may be reading it.
@@ -288,7 +292,12 @@ export const make = Effect.gen(function* () {
     Effect.gen(function* () {
       const command = ChildProcess.make(
         "xdg-mime",
-        ["default", environment.linuxDesktopEntryName, `x-scheme-handler/${scheme}`],
+        [
+          "default",
+          environment.linuxDesktopEntryName,
+          `x-scheme-handler/${scheme}`,
+          `x-scheme-handler/${linkScheme}`,
+        ],
         {
           stdin: "ignore",
           stdout: "ignore",

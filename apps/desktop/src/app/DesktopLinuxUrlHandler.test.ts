@@ -189,6 +189,7 @@ describe("DesktopLinuxUrlHandler", () => {
       displayName: "T3 Code (Nightly)",
       execTarget: '/home/al ice/Apps/T3 "100%" $HOME\\x.AppImage',
       scheme: "t3code",
+      additionalSchemes: ["t3kira"],
       iconPath: "/home/al ice/icons/T3\\x.png",
     });
 
@@ -222,6 +223,7 @@ describe("DesktopLinuxUrlHandler", () => {
         displayName: "T3 Code (Beta)",
         execTarget: previous,
         scheme: "t3code",
+        additionalSchemes: ["t3kira"],
       });
       assert.equal(
         DesktopLinuxUrlHandler.replacedVersionedAppImagePath({
@@ -259,7 +261,12 @@ describe("DesktopLinuxUrlHandler", () => {
           },
           {
             command: "xdg-mime",
-            args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/t3code"],
+            args: [
+              "default",
+              "com.t3tools.T3Code.desktop",
+              "x-scheme-handler/t3code",
+              "x-scheme-handler/t3kira",
+            ],
           },
         ]);
       });
@@ -278,6 +285,7 @@ describe("DesktopLinuxUrlHandler", () => {
           displayName: "T3 Code (Alpha)",
           execTarget: process.execPath,
           scheme: "t3code",
+          additionalSchemes: ["t3kira"],
           iconPath: "/home/alice/.local/share/icons/com.t3tools.T3Code.desktop.png",
         }),
       );
@@ -305,6 +313,7 @@ describe("DesktopLinuxUrlHandler", () => {
           displayName: "T3 Code (Alpha)",
           execTarget: "/home/alice/Applications/T3-Code.AppImage",
           scheme: "t3code",
+          additionalSchemes: ["t3kira"],
           iconPath: "/home/alice/.local/share/icons/com.t3tools.T3Code.desktop.png",
         }),
       });
@@ -318,7 +327,12 @@ describe("DesktopLinuxUrlHandler", () => {
         },
         {
           command: "xdg-mime",
-          args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/t3code"],
+          args: [
+            "default",
+            "com.t3tools.T3Code.desktop",
+            "x-scheme-handler/t3code",
+            "x-scheme-handler/t3kira",
+          ],
         },
       ]);
     });
@@ -334,6 +348,7 @@ describe("DesktopLinuxUrlHandler", () => {
           displayName: "T3 Code (Alpha)",
           execTarget: "/home/alice/Applications/T3-Code.AppImage",
           scheme: "t3code",
+          additionalSchemes: ["t3kira"],
           iconPath,
         }),
       });

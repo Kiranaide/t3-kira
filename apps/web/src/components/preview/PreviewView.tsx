@@ -108,6 +108,7 @@ interface Props {
   tabId?: string | null;
   configuredUrls?: ReadonlyArray<string> | undefined;
   visible: boolean;
+  surfaceZIndex?: number;
   onSendAnnotation?: (
     annotation: PreviewAnnotationPayload,
     image: ComposerImageAttachment | null,
@@ -164,6 +165,7 @@ export function PreviewView({
   tabId: requestedTabId,
   configuredUrls,
   visible,
+  surfaceZIndex = 30,
   onSendAnnotation,
 }: Props) {
   const urlInputRef = useRef<HTMLInputElement | null>(null);
@@ -1110,6 +1112,7 @@ export function PreviewView({
               key={runtimeTabId}
               tabId={runtimeTabId}
               visible={visible && !isUnreachable}
+              zIndex={surfaceZIndex}
               className="absolute inset-0 h-full w-full"
             />
           ) : (

@@ -11,6 +11,7 @@ import * as Scope from "effect/Scope";
 import type * as Electron from "electron";
 
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import { KIRA_APP_SCHEME, KIRA_DEV_SCHEME } from "@t3tools/shared/kiraIdentity";
 
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import { stopChildProcessesBeforeExit, stopZygotesBeforeExit } from "./DesktopExitChildren.ts";
@@ -234,7 +235,7 @@ export const make = DesktopLifecycle.of({
       // Startup already acted on the app link that launched it; passing it on replays it.
       const appLinkPrefixes = [
         `${ElectronProtocol.getDesktopScheme(environment.isDevelopment)}:`,
-        environment.isDevelopment ? "t3code-dev:" : "t3code:",
+        `${environment.isDevelopment ? KIRA_DEV_SCHEME : KIRA_APP_SCHEME}:`,
       ];
       const args = yield* HostProcess.Arguments;
       yield* electronApp.relaunch({

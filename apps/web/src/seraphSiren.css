@@ -1,0 +1,64 @@
+html[data-theme-id="seraph-and-siren"] {
+  --seraph-artwork: url("/themes/seraph-and-siren-light.png");
+  --sidebar-glass-opacity: max(20%, calc(var(--glass-opacity) * 2 - 100%));
+  --seraph-veil: color-mix(in srgb, var(--background) 88%, transparent);
+  --seraph-edge-veil: color-mix(in srgb, var(--background) 25%, transparent);
+
+  @variant dark {
+    --seraph-artwork: url("/themes/seraph-and-siren-dark.png");
+    --seraph-veil: color-mix(in srgb, var(--background) 78%, transparent);
+    --seraph-edge-veil: color-mix(in srgb, var(--background) 18%, transparent);
+  }
+}
+
+html[data-theme-id="seraph-and-siren"]:not([data-workspace-background])
+  [data-workspace-shell]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background-image:
+    linear-gradient(90deg, var(--seraph-veil) 0%, var(--seraph-veil) 72%, var(--seraph-edge-veil)),
+    var(--seraph-artwork);
+  background-position: center right;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  html[data-theme-id="seraph-and-siren"] [data-workspace-shell]::before {
+    display: none;
+  }
+}
+
+html[data-theme-id="seraph-and-siren"] .messages-timeline-scroll {
+  background: transparent;
+}
+
+html[data-theme-id="seraph-and-siren"] [data-slot="composer-host"] {
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--foreground) 7%, transparent);
+}
+
+html[data-theme-id="seraph-and-siren"] [data-slot="composer-context-strip"] {
+  margin-top: 0.5rem;
+  border-radius: 0.75rem;
+  padding-block: 0.25rem;
+  background: color-mix(
+    in srgb,
+    var(--chat-composer-glass-surface) var(--glass-opacity),
+    transparent
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chat-composer-outline) 60%, transparent);
+}
+
+@media (max-width: 900px) {
+  html[data-theme-id="seraph-and-siren"] {
+    --seraph-edge-veil: var(--seraph-veil);
+  }
+}
+
+/* Imported theme CSS decorates the list item outside the rounded row surface. */
+html[data-theme-id="seraph-and-siren"] li[data-thread-item]:hover {
+  box-shadow: none;
+}

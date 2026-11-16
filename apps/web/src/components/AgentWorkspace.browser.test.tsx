@@ -14,10 +14,12 @@ vi.mock(import("../state/threads"), () => ({ threadFamilies: { mount: () => () =
 import { act, render } from "../../test/render";
 import { useAgentWorkspaceStore } from "../agentWorkspaceStore";
 import { AgentWorkspace } from "./AgentWorkspace";
+import { GAMES, useGameWindow } from "./start/quickGameWindowStore";
 
 it("keeps prompts mounted through resizing, layout changes, focus, and restoring the workspace", async () => {
   await page.viewport(1440, 900);
   useAgentWorkspaceStore.setState({ byOwner: {} });
+  useGameWindow.setState({ game: null, environmentId: null, docked: false });
   const owner = scopeThreadRef(EnvironmentId.make("tile-test"), ThreadId.make("Main"));
   const other = scopeThreadRef(owner.environmentId, ThreadId.make("Research"));
   await using screen = await render(
@@ -60,6 +62,7 @@ it("keeps prompts mounted through resizing, layout changes, focus, and restoring
 it("fits four windows inside the grid without overflowing the canvas", async () => {
   await page.viewport(1440, 900);
   useAgentWorkspaceStore.setState({ byOwner: {} });
+  useGameWindow.setState({ game: null, environmentId: null, docked: false });
   const owner = scopeThreadRef(EnvironmentId.make("grid-test"), ThreadId.make("Main"));
   for (const name of ["Research", "Review", "Build"])
     useAgentWorkspaceStore
@@ -82,4 +85,10 @@ it("fits four windows inside the grid without overflowing the canvas", async () 
     expect(rect.right).toBeLessThanOrEqual(bounds.right);
     expect(rect.bottom).toBeLessThanOrEqual(bounds.bottom);
   }
+  await act(() =>
+    useGameWindow.setState({ game: GAMES[0], environmentId: owner.environmentId, docked: true }),
+  );
+  expect(screen.container.querySelector('[aria-label="Docked game tile"]')).not.toBeNull();
+  await act(() => useGameWindow.setState({ game: null, docked: false }));
+  expect(screen.container.querySelector('[aria-label="Docked game tile"]')).toBeNull();
 });

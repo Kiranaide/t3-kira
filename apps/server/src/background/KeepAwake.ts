@@ -94,6 +94,9 @@ class KeepAwakeInhibitorExited extends Schema.TaggedError<KeepAwakeInhibitorExit
   { exitCode: Schema.Number },
 ) {}
 
+export const keepAwakeWanted = (mode: { always: boolean; agents: boolean }, busy: boolean) =>
+  mode.always || (mode.agents && busy);
+
 export const layer = Layer.effectDiscard(
   Effect.gen(function* () {
     const command = inhibitorCommand(yield* HostProcess.Platform, process.pid);
@@ -143,12 +146,18 @@ export const layer = Layer.effectDiscard(
       Effect.gen(function* () {
         const changes = yield* settings.subscribeChanges;
         const current = yield* settings.getSettings.pipe(
-          Effect.map((value) => value.keepAwakeWhileAgentsWork),
-          Effect.orElseSucceed(() => true),
+          Effect.map((value) => ({
+            always: value.keepAwakeAlways,
+            agents: value.keepAwakeWhileAgentsWork,
+          })),
+          Effect.orElseSucceed(() => ({ always: false, agents: true })),
         );
         return Stream.concat(
           Stream.succeed(current),
-          Stream.map(changes, (value) => value.keepAwakeWhileAgentsWork),
+          Stream.map(changes, (value) => ({
+            always: value.keepAwakeAlways,
+            agents: value.keepAwakeWhileAgentsWork,
+          })),
         );
       }),
     );
@@ -182,10 +191,9 @@ export const layer = Layer.effectDiscard(
     );
 
     yield* forkParked(
-      holdWhileWanted(
-        Stream.zipLatestWith(enabled, active, (on, busy) => on && busy),
-        hold,
-      ).pipe(Effect.catchCause((cause) => Effect.logWarning("keep-awake stopped", { cause }))),
+      holdWhileWanted(Stream.zipLatestWith(enabled, active, keepAwakeWanted), hold).pipe(
+        Effect.catchCause((cause) => Effect.logWarning("keep-awake stopped", { cause })),
+      ),
     );
   }),
 );

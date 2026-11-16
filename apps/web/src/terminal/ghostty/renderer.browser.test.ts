@@ -56,6 +56,45 @@ const layout = {
 };
 
 describe.each([1.25, 2.2])("renderGhosttySnapshot at a %sx device pixel ratio", (scale) => {
+  it("clears a glass background on full and dirty-row paints while preserving explicit cell colors", () => {
+    const context = scaledContext(scale);
+    const snapshot: GhosttySnapshot = {
+      cols: 3,
+      rows: 1,
+      foreground: { r: 0, g: 0, b: 0 },
+      background,
+      cursor: { r: 0, g: 0, b: 0 },
+      cursorX: 1,
+      cursorY: 0,
+      cursorVisible: true,
+      cursorBlinking: true,
+      cursorStyle: 1,
+      dirtyRows: new Set([0]),
+      rowData: [
+        {
+          cells: [blank, blank, { ...blank, background: { r: 200, g: 0, b: 0 } }],
+          text: "",
+          isWrapContinuation: false,
+          wrapsToNext: false,
+        },
+      ],
+    };
+    const options = { ...layout, context, snapshot, transparentBackground: true };
+    const pixel = (x: number, y: number) => [
+      ...context.getImageData(Math.floor(x * scale), Math.floor(y * scale), 1, 1).data,
+    ];
+
+    renderGhosttySnapshot({ ...options, forceFull: true, cursorOn: true });
+    expect(pixel(1, 1)[3]).toBe(0);
+    expect(pixel(7, 12)[3]).toBe(0);
+    expect(pixel(23, 12)).toEqual([200, 0, 0, 255]);
+    expect(pixel(15, 12)[3]).toBe(255);
+
+    renderGhosttySnapshot({ ...options, forceFull: false, cursorOn: false, previousCursorY: 0 });
+    expect(pixel(15, 12)[3]).toBe(0);
+    expect(pixel(23, 12)).toEqual([200, 0, 0, 255]);
+  });
+
   it.each([
     ["bar", 0],
     ["block", 1],

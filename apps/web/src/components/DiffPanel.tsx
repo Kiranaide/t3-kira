@@ -1323,7 +1323,10 @@ export default function DiffPanel({
         )
       ) : (
         <>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
+          <div
+            data-workspace-canvas
+            className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background"
+          >
             {preview?.incomplete && (
               <p className="shrink-0 border-b border-border/70 bg-muted/40 px-3 py-1.5 text-2xs text-muted-foreground">
                 {selectedPatchError

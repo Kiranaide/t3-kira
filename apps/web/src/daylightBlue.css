@@ -1,19 +1,26 @@
 html[data-theme-id="daylight-blue"] {
-  --daylight-veil: rgba(248, 250, 255, 0.88);
-  --daylight-edge-veil: rgba(248, 250, 255, 0.14);
+  --sidebar-glass-opacity: max(20%, calc(var(--glass-opacity) * 2 - 100%));
+  --daylight-veil: color-mix(in srgb, var(--background) 96%, transparent);
+  --daylight-edge-veil: color-mix(in srgb, var(--background) 82%, transparent);
+
+  @variant dark {
+    --daylight-veil: color-mix(in srgb, var(--background) 80%, transparent);
+    --daylight-edge-veil: color-mix(in srgb, var(--background) 38%, transparent);
+  }
 }
 
-html.dark[data-theme-id="daylight-blue"] {
-  --daylight-veil: rgba(16, 20, 31, 0.94);
-  --daylight-edge-veil: rgba(16, 20, 31, 0.6);
-}
-
-html[data-theme-id="daylight-blue"] [data-workspace-area="conversation"] {
+html[data-theme-id="daylight-blue"]:not([data-workspace-background])
+  [data-workspace-shell]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
   background-image:
     linear-gradient(
       90deg,
       var(--daylight-veil) 0%,
-      var(--daylight-veil) 55%,
+      var(--daylight-veil) 72%,
       var(--daylight-edge-veil)
     ),
     url("/themes/daylight-blue.webp");
@@ -22,17 +29,30 @@ html[data-theme-id="daylight-blue"] [data-workspace-area="conversation"] {
   background-repeat: no-repeat;
 }
 
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  html[data-theme-id="daylight-blue"] [data-workspace-shell]::before {
+    display: none;
+  }
+}
+
 html[data-theme-id="daylight-blue"] .messages-timeline-scroll {
   background: transparent;
 }
 
 html[data-theme-id="daylight-blue"] [data-slot="composer-host"] {
-  border-radius: 18px;
-  box-shadow: 0 5px 22px #5279dd16;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--foreground) 7%, transparent);
 }
 
-html[data-theme-id="daylight-blue"] [data-user-message-bubble] {
-  border-radius: 16px;
+html[data-theme-id="daylight-blue"] [data-slot="composer-context-strip"] {
+  margin-top: 0.5rem;
+  border-radius: 0.75rem;
+  padding-block: 0.25rem;
+  background: color-mix(
+    in srgb,
+    var(--chat-composer-glass-surface) var(--glass-opacity),
+    transparent
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chat-composer-outline) 60%, transparent);
 }
 
 @media (max-width: 900px) {

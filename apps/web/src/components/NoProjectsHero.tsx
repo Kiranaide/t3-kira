@@ -9,8 +9,8 @@ import { Button } from "./ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "./ui/empty";
 import { SidebarInset } from "./ui/sidebar";
 import { WorkspacePageHeader } from "./WorkspacePageHeader";
-import { ChatBackdrop } from "./ChatBackdrop";
 import { GitActivityPanel } from "./start/GitActivityPanel";
+import { QuickActionsPanel } from "./start/QuickActionsPanel";
 
 export function NoProjectsHero() {
   const contentArea = workspaceAreaProps("home", 1, "Home");
@@ -24,8 +24,10 @@ export function NoProjectsHero() {
       role="main"
       className="h-dvh min-h-0 overflow-hidden overscroll-y-none"
     >
-      <div className="relative isolate flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-background">
-        <ChatBackdrop surface="start" />
+      <div
+        data-workspace-canvas
+        className="relative isolate flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-background"
+      >
         {/* The desktop window only moves where CSS opts in, so keep a titlebar strip. */}
         {isElectron ? <WorkspacePageHeader electron /> : null}
         <Empty size="hero" className="flex-1">
@@ -56,6 +58,7 @@ export function NoProjectsHero() {
             </EmptyHeader>
             <div className="mt-6">
               <GitActivityPanel environmentId={primaryEnvironmentId} />
+              <QuickActionsPanel key={primaryEnvironmentId} environmentId={primaryEnvironmentId} />
             </div>
           </div>
         </Empty>

@@ -2,6 +2,7 @@
 @layer theme, base, clerk, components, utilities;
 @import "tailwindcss";
 @import "./daylightBlue.css";
+@import "./seraphSiren.css";
 
 .agent-resize-handle:hover,
 .agent-resize-handle:focus-visible,
@@ -376,6 +377,79 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
 
   @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     background: var(--background) !important;
+  }
+}
+
+[data-workspace-shell] {
+  background: var(--background);
+}
+
+html:is(
+  [data-workspace-background],
+  [data-theme-id="daylight-blue"],
+  [data-theme-id="seraph-and-siren"]
+) {
+  --terminal-glass: 1;
+
+  [data-terminal-surface] {
+    background: transparent;
+  }
+
+  [data-slot="sidebar-inset"],
+  [data-agent-window],
+  [data-workspace-canvas] {
+    background: transparent;
+  }
+
+  [data-slot="sidebar-inner"],
+  [data-slot="sidebar"][data-mobile="true"] {
+    background: color-mix(
+      in srgb,
+      var(--sidebar) var(--sidebar-glass-opacity, var(--glass-opacity)),
+      transparent
+    );
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+    box-shadow: inset -1px 0 color-mix(in srgb, var(--foreground) 8%, transparent);
+  }
+
+  [data-chat-header],
+  [data-workspace-header],
+  [data-preview-panel-mode="inline"],
+  [data-thread-details-card],
+  [data-thread-terminal-drawer],
+  .git-activity-panel {
+    background: color-mix(in srgb, var(--background) var(--glass-opacity), transparent);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
+    box-shadow: inset 0 1px color-mix(in srgb, var(--foreground) 7%, transparent);
+  }
+
+  @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    [data-slot="sidebar-inner"],
+    [data-slot="sidebar"][data-mobile="true"] {
+      background: var(--sidebar);
+    }
+
+    [data-chat-header],
+    [data-workspace-header],
+    [data-preview-panel-mode="inline"],
+    [data-thread-details-card],
+    [data-thread-terminal-drawer],
+    .git-activity-panel {
+      background: var(--background);
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    --glass-opacity: 100% !important;
+    --glass-blur: 0px !important;
+
+    [data-slot="sidebar-inset"],
+    [data-agent-window],
+    [data-workspace-canvas] {
+      background: var(--background);
+    }
   }
 }
 
@@ -2732,4 +2806,115 @@ code {
 
 .messages-timeline-scroll:focus-visible {
   outline: none;
+}
+
+.quick-game-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  text-align: left;
+  cursor: pointer;
+}
+.quick-game-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.quick-game-action:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.quick-game-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--primary);
+}
+.game-window {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px #0004;
+}
+.game-window-floating {
+  position: fixed;
+  z-index: 45;
+  right: 24px;
+  bottom: 24px;
+  width: min(540px, calc(100vw - 32px));
+  height: min(720px, calc(100dvh - 80px));
+  min-width: min(320px, calc(100vw - 32px));
+  min-height: 240px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100dvh - 48px);
+  resize: both;
+}
+.game-window-docked {
+  flex: 0 0 38%;
+  min-width: 320px;
+  margin: 48px 8px 8px 0;
+}
+.game-window-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 44px;
+  flex-shrink: 0;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+@media (max-width: 767px) {
+  .game-window-docked {
+    position: fixed;
+    inset: 48px 8px 8px;
+    z-index: 45;
+    margin: 0;
+    min-width: 0;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .quick-game-action:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .quick-game-action {
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .split-drop-icon {
+    transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .split-chat-drop-target[data-thread-context-over] .split-drop-icon {
+    transform: scale(1.2);
+  }
+}
+.split-chat-drop-target[data-thread-context-over] {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
+@supports (top: anchor(top)) {
+  body:has([aria-label="Docked game tile"]) .game-window-docked {
+    position: fixed;
+    position-anchor: --game-grid;
+    top: anchor(top, 48px);
+    left: anchor(left, auto);
+    right: anchor(right, 8px);
+    bottom: anchor(bottom, 8px);
+    width: anchor-size(width, 38vw);
+    height: anchor-size(height, auto);
+    z-index: 45;
+    margin: 0;
+    min-width: 0;
+  }
 }

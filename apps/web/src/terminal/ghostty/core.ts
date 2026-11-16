@@ -84,6 +84,7 @@ export interface GhosttyTheme {
   readonly cursor: GhosttyColor;
   readonly palette?: readonly GhosttyColor[];
   readonly selectionBackground?: string;
+  readonly transparentBackground?: boolean;
 }
 
 export interface GhosttyCell {

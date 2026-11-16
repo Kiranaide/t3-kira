@@ -561,7 +561,8 @@ export function useSettingsRestore(onRestored?: () => void) {
       ? ["Continue threads after restarts"]
       : []),
     ...(isBackgroundActivityDirty ? ["Background activity"] : []),
-    ...(settings.keepAwakeWhileAgentsWork !== DEFAULT_UNIFIED_SETTINGS.keepAwakeWhileAgentsWork
+    ...(settings.keepAwakeAlways ||
+    settings.keepAwakeWhileAgentsWork !== DEFAULT_UNIFIED_SETTINGS.keepAwakeWhileAgentsWork
       ? ["Keep awake while agents work"]
       : []),
     ...(settings.defaultThreadEnvMode !== DEFAULT_UNIFIED_SETTINGS.defaultThreadEnvMode
@@ -687,6 +688,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       enableProviderUpdateChecks: DEFAULT_UNIFIED_SETTINGS.enableProviderUpdateChecks,
       continueThreadsAfterServerUpdate: DEFAULT_UNIFIED_SETTINGS.continueThreadsAfterServerUpdate,
       backgroundActivity: DEFAULT_UNIFIED_SETTINGS.backgroundActivity,
+      keepAwakeAlways: false,
       keepAwakeWhileAgentsWork: DEFAULT_UNIFIED_SETTINGS.keepAwakeWhileAgentsWork,
       backgroundActivityProfile: DEFAULT_UNIFIED_SETTINGS.backgroundActivityProfile,
       automaticGitFetchInterval: DEFAULT_UNIFIED_SETTINGS.automaticGitFetchInterval,
@@ -2231,16 +2233,18 @@ export function MaintenanceSettingsPanel() {
         <BackgroundActivitySettingsRow />
         <SettingsRow
           serverScoped
-          settingKeys={["keepAwakeWhileAgentsWork"]}
+          settingKeys={["keepAwakeAlways", "keepAwakeWhileAgentsWork"]}
           {...searchableSetting("keep-awake-while-agents-work")}
-          description="Stop the computer from going to sleep while agents are working, and let it sleep once they finish. Closing a laptop lid still puts it to sleep."
+          description="Choose when this host computer stays awake. Closing a laptop lid still puts it to sleep."
           resetAction={
+            settings.keepAwakeAlways ||
             settings.keepAwakeWhileAgentsWork !==
-            DEFAULT_UNIFIED_SETTINGS.keepAwakeWhileAgentsWork ? (
+              DEFAULT_UNIFIED_SETTINGS.keepAwakeWhileAgentsWork ? (
               <SettingResetButton
                 label="keep awake while agents work"
                 onClick={() =>
                   updateSettings({
+                    keepAwakeAlways: false,
                     keepAwakeWhileAgentsWork: DEFAULT_UNIFIED_SETTINGS.keepAwakeWhileAgentsWork,
                   })
                 }
@@ -2248,14 +2252,30 @@ export function MaintenanceSettingsPanel() {
             ) : null
           }
           control={
-            <ScopedSwitch
-              settingKeys={["keepAwakeWhileAgentsWork"]}
-              checked={settings.keepAwakeWhileAgentsWork}
-              onCheckedChange={(checked) =>
-                updateSettings({ keepAwakeWhileAgentsWork: Boolean(checked) })
+            <Select
+              value={
+                settings.keepAwakeAlways
+                  ? "always"
+                  : settings.keepAwakeWhileAgentsWork
+                    ? "agents"
+                    : "off"
               }
-              aria-label="Keep awake while agents work"
-            />
+              onValueChange={(value) =>
+                updateSettings({
+                  keepAwakeAlways: value === "always",
+                  keepAwakeWhileAgentsWork: value === "agents",
+                })
+              }
+            >
+              <SelectTrigger size="sm" className="w-full sm:w-48" aria-label="Keep computer awake">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectPopup align="end">
+                <SelectItem value="always">Always</SelectItem>
+                <SelectItem value="agents">While agents work</SelectItem>
+                <SelectItem value="off">Off</SelectItem>
+              </SelectPopup>
+            </Select>
           }
         />
       </SettingsSection>

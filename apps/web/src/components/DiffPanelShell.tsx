@@ -27,6 +27,7 @@ export function DiffPanelShell(props: {
 
   return (
     <div
+      data-workspace-canvas
       className={cn(
         "flex h-full min-w-0 flex-col bg-background",
         props.mode === "inline"
@@ -35,9 +36,15 @@ export function DiffPanelShell(props: {
       )}
     >
       {shouldUseDragRegion ? (
-        <div className={getDiffPanelHeaderRowClassName(props.mode)}>{props.header}</div>
+        <div data-workspace-canvas className={getDiffPanelHeaderRowClassName(props.mode)}>
+          {props.header}
+        </div>
       ) : (
-        <div className={getDiffPanelHeaderRowClassName(props.mode)} data-surface-subheader>
+        <div
+          data-workspace-canvas
+          className={getDiffPanelHeaderRowClassName(props.mode)}
+          data-surface-subheader
+        >
           {props.header}
         </div>
       )}
@@ -92,6 +99,7 @@ function DiffCodeLineSkeleton({ width }: { width: "short" | "medium" | "long" })
 export function DiffPanelLoadingState(props: { label: string }) {
   return (
     <div
+      data-workspace-canvas
       className="min-h-0 flex-1 overflow-hidden bg-background"
       role="status"
       aria-live="polite"

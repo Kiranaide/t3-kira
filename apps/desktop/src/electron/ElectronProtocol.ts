@@ -11,11 +11,10 @@ import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
 
 import * as Electron from "electron";
-import { KIRA_APP_SCHEME, KIRA_DEV_SCHEME } from "@t3tools/shared/kiraIdentity";
 
 export const DESKTOP_HOST = "app";
-const DESKTOP_PRODUCTION_SCHEME = KIRA_APP_SCHEME;
-const DESKTOP_DEVELOPMENT_SCHEME = KIRA_DEV_SCHEME;
+const DESKTOP_PRODUCTION_SCHEME = "t3code";
+const DESKTOP_DEVELOPMENT_SCHEME = "t3code-dev";
 
 export function getDesktopScheme(isDevelopment: boolean): string {
   return isDevelopment ? DESKTOP_DEVELOPMENT_SCHEME : DESKTOP_PRODUCTION_SCHEME;

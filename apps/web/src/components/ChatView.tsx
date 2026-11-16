@@ -286,8 +286,8 @@ import {
 import { useEnvironmentShellHasSnapshot } from "../state/shell";
 import { ChatComposer, type ChatComposerHandle } from "./chat/ChatComposer";
 import { DraftHeroHeadline } from "./chat/DraftHeroHeadline";
-import { ChatBackdrop } from "./ChatBackdrop";
 import { GitActivityPanel } from "./start/GitActivityPanel";
+import { QuickActionsPanel } from "./start/QuickActionsPanel";
 import { ExpandedImageDialogHost, openExpandedImagePreview } from "./chat/ExpandedImageDialog";
 import {
   BranchRestoreConfirmHost,
@@ -3350,6 +3350,7 @@ export default function ChatView(props: ChatViewProps) {
   const content = (
     <div
       ref={setWorkspaceLayoutElement}
+      data-workspace-canvas
       className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden bg-background"
     >
       {embedded || !agentWindowVisible ? null : (
@@ -3459,9 +3460,9 @@ export default function ChatView(props: ChatViewProps) {
             />
             <div
               {...conversationArea}
+              data-workspace-canvas
               className="relative isolate flex min-h-0 flex-1 flex-col bg-background"
             >
-              <ChatBackdrop surface={isDraftHeroState ? "start" : "chat"} />
               <WorkspaceMutationIdContext value={workspaceMutationId}>
                 <ThreadTimeline
                   pendingApprovals={pendingApprovals}
@@ -3896,7 +3897,10 @@ export default function ChatView(props: ChatViewProps) {
                     />
                   </div>
                   {isDraftHeroState ? (
-                    <GitActivityPanel key={environmentId} environmentId={environmentId} />
+                    <div key={environmentId}>
+                      <GitActivityPanel environmentId={environmentId} />
+                      <QuickActionsPanel environmentId={environmentId} />
+                    </div>
                   ) : null}
                 </div>
               </div>

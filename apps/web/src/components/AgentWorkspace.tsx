@@ -1,3 +1,5 @@
+import { useDockedGame } from "./start/quickGameWindowStore";
+import { KeepAwakeControl } from "./KeepAwakeControl";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { threadRuntimeIsActive } from "@t3tools/client-runtime/state/shell";
 import type { ScopedThreadRef, ThreadId } from "@t3tools/contracts";
@@ -313,14 +315,15 @@ export function AgentWorkspace({
 }) {
   const saved = useAgentWorkspaceStore((state) => state.byOwner[scopedThreadKey(owner)]);
   const workspace = saved ?? defaultAgentWorkspace(owner);
-  const tiled = workspace.threadIds.length > 1;
+  const gameDocked = useDockedGame(owner.environmentId);
+  const tiled = workspace.threadIds.length > 1 || gameDocked;
   const compact = useMediaQuery("(max-width: 767px)");
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const single = workspace.focusedThreadId !== null || compact || !tiled;
   const shownId = workspace.focusedThreadId ?? workspace.activeThreadId;
   const { columns, rows } = single
     ? { columns: 1, rows: 1 }
-    : agentGridDimensions(workspace.layout, workspace.threadIds.length);
+    : agentGridDimensions(workspace.layout, workspace.threadIds.length + (gameDocked ? 1 : 0));
   const columnKey = `${workspace.layout}:columns:${columns}`;
   const rowKey = `${workspace.layout}:rows:${rows}`;
   const columnSizes = agentTrackSizes(workspace.sizes[columnKey], columns);
@@ -399,6 +402,7 @@ export function AgentWorkspace({
                 </ToggleGroup>
               </div>
               <SplitChatControl threadRef={owner} />
+              <KeepAwakeControl environmentId={owner.environmentId} />
               <Button
                 variant="ghost"
                 size="icon-sm"
@@ -449,6 +453,12 @@ export function AgentWorkspace({
                 </AgentWindow>
               </div>
             ))}
+            {gameDocked && !single ? (
+              <div
+                aria-label="Docked game tile"
+                className="min-h-0 min-w-0 [anchor-name:--game-grid]"
+              />
+            ) : null}
             {columnSizes.slice(0, -1).map((_, boundary) => (
               <AgentResizeHandle
                 key={`column:${workspace.threadIds[boundary]}`}

@@ -20,7 +20,7 @@ export class DesktopLegacyLocalStorage extends Context.Service<
   }
 >()("@t3tools/desktop/app/DesktopLegacyLocalStorage") {}
 
-const MARKER_FILE_NAME = "v1-local-storage-imported";
+const MARKER_FILE_NAME = "t3-origin-local-storage-imported";
 const V1_PROFILE_NAMES = ["T3 Kira (Alpha)", "t3-kira"];
 
 const make = Effect.gen(function* () {
@@ -76,6 +76,19 @@ const make = Effect.gen(function* () {
     const marker = path.join(userDataPath, MARKER_FILE_NAME);
     if (yield* fs.exists(marker).pipe(Effect.orElseSucceed(() => true))) return;
     yield* Ref.set(markerPath, Option.some(marker));
+    const kiraDirectory = path.join(userDataPath, "Local Storage", "leveldb");
+    if (yield* fs.exists(kiraDirectory).pipe(Effect.orElseSucceed(() => false))) {
+      const kiraItems = yield* readChromiumLocalStorage(kiraDirectory, "t3kira://app").pipe(
+        Effect.provideService(FileSystem.FileSystem, fs),
+        Effect.provideService(Path.Path, path),
+        Effect.option,
+      );
+      if (Option.isNone(kiraItems)) return;
+      if (kiraItems.value.size > 0) {
+        yield* Ref.set(items, Option.some(Object.fromEntries(kiraItems.value)));
+        return;
+      }
+    }
     const directory = yield* findV1LocalStorage;
     if (directory === null) return yield* writeMarker;
     const origin = ElectronProtocol.getDesktopUrl(false).replace(/\/$/, "");

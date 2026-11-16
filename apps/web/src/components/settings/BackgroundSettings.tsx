@@ -188,7 +188,7 @@ export function BackgroundSettings() {
     <div className="space-y-5">
       <SettingsRow
         {...searchableSetting("chat-background")}
-        description="Start and conversations use your theme background. An optional image applies to both. Saved on this device."
+        description="One background across Start, conversations, and the workspace. Sidebar and headers use translucent glass over your image. Saved on this device."
       />
       <BackgroundEditor label="Background" background={background} onChange={change} />
     </div>

@@ -1,3 +1,4 @@
+import { KeepAwakeControl } from "../KeepAwakeControl";
 import {
   PanelBottomIcon,
   PanelRightIcon,
@@ -99,6 +100,7 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
         <>
           {workspaceThreadRef ? <SplitChatControl threadRef={workspaceThreadRef} /> : null}
           <ThemeSwitch />
+          <KeepAwakeControl environmentId={workspaceThreadRef?.environmentId ?? null} />
           {threadPanelControl}
         </>
       ) : null}

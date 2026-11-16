@@ -10,6 +10,7 @@ import * as Option from "effect/Option";
 
 import * as Electron from "electron";
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import { KIRA_APP_SCHEME, KIRA_DEV_SCHEME } from "@t3tools/shared/kiraIdentity";
 
 import * as DesktopEarlyElectronStartup from "./DesktopEarlyElectronStartup.ts";
 import { trimmedString } from "./DesktopConfig.ts";
@@ -154,6 +155,7 @@ export const make = Effect.gen(function* () {
                 ),
               ) ?? process.execPath,
             scheme: ElectronProtocol.getDesktopScheme(linux.isDevelopment),
+            additionalSchemes: [linux.isDevelopment ? KIRA_DEV_SCHEME : KIRA_APP_SCHEME],
             ...(iconPath === undefined ? {} : { iconPath }),
           }),
           "utf8",

@@ -386,6 +386,7 @@ export function terminalThemeFromApp(mountElement?: HTMLElement | null): Ghostty
     ),
     palette: TERMINAL_PALETTES[isDark ? "dark" : "light"],
     selectionBackground: terminalSelection,
+    transparentBackground: themeStyles.getPropertyValue("--terminal-glass").trim() === "1",
   };
 }
 
@@ -1097,7 +1098,7 @@ function TerminalSessionViewport({
       });
       themeObserver.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ["class", "style"],
+        attributeFilter: ["class", "style", "data-workspace-background", "data-theme-id"],
       });
       setupCleanups.push(() => themeObserver.disconnect());
 
@@ -1182,6 +1183,7 @@ function TerminalSessionViewport({
   return (
     <div
       ref={attachContainer}
+      data-terminal-surface
       tabIndex={-1}
       className="relative h-full w-full overflow-hidden bg-(--terminal-background)"
     />
@@ -1862,6 +1864,7 @@ export default function ThreadTerminalDrawer({
 
       <div className="min-h-0 w-full flex-1">
         <div
+          data-terminal-surface
           className={cn(
             "flex h-full min-h-0 bg-(--terminal-background)",
             hasTerminalSidebar && "gap-1.5",

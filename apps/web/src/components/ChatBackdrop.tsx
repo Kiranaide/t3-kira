@@ -1,6 +1,6 @@
 import { useClientSettings } from "../hooks/useSettings";
 
-export function ChatBackdrop({ surface }: { readonly surface: "chat" | "start" }) {
+export function ChatBackdrop({ surface }: { readonly surface: "chat" | "start" | "workspace" }) {
   const background = useClientSettings((settings) => settings.chatBackground);
   if (background.image === null) return null;
   return (

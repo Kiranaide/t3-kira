@@ -34,3 +34,15 @@ describe("KeepAwake.holdWhileWanted", () => {
     }),
   );
 });
+
+it.each([
+  [false, false, false, false],
+  [false, false, true, false],
+  [false, true, false, false],
+  [false, true, true, true],
+  [true, false, false, true],
+  [true, false, true, true],
+  [true, true, false, true],
+])("awake preference always=%s agents=%s busy=%s holds=%s", (always, agents, busy, expected) => {
+  expect(KeepAwake.keepAwakeWanted({ always, agents }, busy)).toBe(expected);
+});

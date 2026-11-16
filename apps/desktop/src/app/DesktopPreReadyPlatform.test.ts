@@ -171,7 +171,10 @@ describe("DesktopPreReadyPlatform", () => {
         assert.equal(identity.desktopName, "com.kiranaide.t3kira.desktop");
         assert.include(identity.desktopEntry ?? "", "Exec=/Applications/current.AppImage %U");
         assert.include(identity.desktopEntry ?? "", "Name=T3 Kira (Beta)");
-        assert.include(identity.desktopEntry ?? "", "MimeType=x-scheme-handler/t3kira;");
+        assert.include(
+          identity.desktopEntry ?? "",
+          "MimeType=x-scheme-handler/t3code;x-scheme-handler/t3kira;",
+        );
         assert.include(
           identity.desktopEntry ?? "",
           "Icon=/xdg/icons/com.kiranaide.t3kira.desktop.png",

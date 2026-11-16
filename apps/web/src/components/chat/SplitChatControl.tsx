@@ -141,12 +141,13 @@ export function SplitChatDropTarget({ threadRef }: { threadRef: ScopedThreadRef 
       className={
         ghost === null
           ? "hidden"
-          : "absolute right-3 top-14 bottom-24 z-50 flex w-1/3 items-center justify-center rounded-xl border-2 border-dashed border-primary/50 bg-background/95 p-4 text-center text-sm text-foreground shadow-lg data-[thread-context-over]:border-primary data-[thread-context-over]:bg-accent"
+          : "split-chat-drop-target absolute right-3 top-14 bottom-24 z-50 flex w-1/4 items-center justify-center rounded-xl border-2 border-dashed border-primary/50 bg-background/80 p-4 text-center text-sm text-foreground shadow-lg data-[thread-context-over]:border-primary data-[thread-context-over]:bg-accent"
       }
     >
       <span className="pointer-events-none flex flex-col items-center gap-2">
-        <Columns2Icon className="size-6" />
-        Drop to open chat beside
+        <Columns2Icon className="split-drop-icon size-6" />
+        <span className="font-medium">Open beside this chat</span>
+        <span className="text-xs text-muted-foreground">Release to add a window</span>
       </span>
     </div>
   );

@@ -583,19 +583,34 @@ function ServerSettingsDetail(props: { readonly page: SettingsPage }) {
                     />
                   </View>
                   <View className="border-t border-border-subtle">
-                    <SettingsSwitchRow
-                      icon="bolt.circle"
-                      label="Keep awake while agents work"
-                      subtitle={managedSubtitle(
-                        "keepAwakeWhileAgentsWork",
-                        projectSelected
-                          ? "Environment-wide setting. Select All projects to change it."
-                          : "Stop the computer from sleeping while agents work. Closing a laptop lid still sleeps it.",
-                      )}
-                      value={uniform("keepAwakeWhileAgentsWork")}
-                      disabled={disabledFor("keepAwakeWhileAgentsWork")}
-                      onValueChange={(value) => write({ keepAwakeWhileAgentsWork: value })}
-                    />
+                    {[
+                      { mode: "always", label: "Always keep host awake" },
+                      { mode: "agents", label: "Keep awake while agents work" },
+                      { mode: "off", label: "Allow host to sleep" },
+                    ].map(({ mode, label }) => (
+                      <SettingsChoiceRow
+                        key={mode}
+                        label={label}
+                        selected={
+                          !isMixed("keepAwakeAlways") &&
+                          !isMixed("keepAwakeWhileAgentsWork") &&
+                          (uniform("keepAwakeAlways")
+                            ? "always"
+                            : uniform("keepAwakeWhileAgentsWork")
+                              ? "agents"
+                              : "off") === mode
+                        }
+                        disabled={
+                          disabledFor("keepAwakeWhileAgentsWork") || disabledFor("keepAwakeAlways")
+                        }
+                        onPress={() =>
+                          write({
+                            keepAwakeAlways: mode === "always",
+                            keepAwakeWhileAgentsWork: mode === "agents",
+                          })
+                        }
+                      />
+                    ))}
                   </View>
                 </SettingsSection>
               </>

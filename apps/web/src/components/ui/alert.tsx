@@ -5,6 +5,13 @@ import type * as React from "react";
 import { cn } from "~/lib/utils";
 
 const alertVariants = cva("relative rounded-xl border px-3.5 py-3 text-card-foreground text-sm", {
+  compoundVariants: [
+    {
+      surface: "glass",
+      variant: ["error", "warning"],
+      class: "text-foreground [&_[data-slot=alert-description]]:text-foreground",
+    },
+  ],
   defaultVariants: {
     surface: "default",
     variant: "default",
