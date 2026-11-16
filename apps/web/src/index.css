@@ -2834,7 +2834,7 @@ code {
   height: 38px;
   border-radius: 10px;
   background: var(--accent);
-  color: var(--primary);
+  color: var(--accent-foreground);
 }
 .game-window {
   display: flex;
