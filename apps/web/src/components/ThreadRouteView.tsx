@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 
 import ChatView from "./ChatView";
 import { AgentWorkspace } from "./AgentWorkspace";
-import { BackgroundThreadContext } from "./chat/backgroundThread";
+import { BackgroundThreadContext, HiddenThreadContext } from "./chat/backgroundThread";
 import { SidebarInset } from "./ui/sidebar";
 import { useComposerDraftStore } from "../composerDraftStore";
 import { useSidebarPendingFileDropStore } from "../sidebarPendingFileDropStore";
@@ -239,7 +239,13 @@ export function ThreadRouteView({
       inert={background}
     >
       <BackgroundThreadContext value={background}>
-        {workspaceOwner ? <AgentWorkspace owner={workspaceOwner}>{view}</AgentWorkspace> : view}
+        {workspaceOwner ? (
+          <AgentWorkspace owner={workspaceOwner}>
+            <HiddenThreadContext value={background}>{view}</HiddenThreadContext>
+          </AgentWorkspace>
+        ) : (
+          <HiddenThreadContext value={background}>{view}</HiddenThreadContext>
+        )}
       </BackgroundThreadContext>
       {background ? null : redirect}
     </SidebarInset>
