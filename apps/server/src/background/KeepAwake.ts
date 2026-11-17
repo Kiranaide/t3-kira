@@ -46,8 +46,9 @@ function inhibitorCommand(
           "-NoProfile",
           "-NonInteractive",
           "-Command",
-          // ES_CONTINUOUS | ES_SYSTEM_REQUIRED, held by this thread until Wait-Process returns.
-          `$t = Add-Type -Name Power -Namespace T3 -PassThru -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint f);'; [void]$t::SetThreadExecutionState([uint32]2147483649); Wait-Process -Id ${serverPid}`,
+          // ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED: on Modern Standby (S0) the
+          // display turning off is what enters standby, so a system-only hold still lets it sleep.
+          `$t = Add-Type -Name Power -Namespace T3 -PassThru -MemberDefinition '[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint f);'; [void]$t::SetThreadExecutionState([uint32]2147483651); Wait-Process -Id ${serverPid}`,
         ],
       };
     default:
