@@ -11,7 +11,7 @@ import { useStableCallback } from "../../hooks/useStableCallback";
 import { Button } from "../ui/button";
 import { toastManager } from "../ui/toast";
 import { SettingsRow } from "./settingsLayout";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 
 async function readBackgroundImage(file: File): Promise<string> {
   if (!["image/png", "image/jpeg", "image/webp", "image/avif"].includes(file.type)) {
@@ -176,6 +176,7 @@ function BackgroundEditor({
 }
 
 export function BackgroundSettings() {
+  const searchableSetting = useSearchableSetting();
   const background = useClientSettings((settings) => settings.chatBackground);
   const change = useStableCallback((patch: Partial<ChatBackground>) => {
     void persistClientSettingsUpdate((current: ClientSettings) => ({
