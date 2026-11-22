@@ -115,11 +115,11 @@ function setup(mode: "single" | "all") {
 it("closes an existing chat pane without deleting an unused ordinary chat", async () => {
   const { original } = setup("single");
   fixture.lineage = { sideChat: false, parentThreadId: null };
-  useRightPanelStore.getState().openSideChat(original, ThreadId.make("existing-empty-chat"));
+  useRightPanelStore.getState().openThread(original, ThreadId.make("existing-empty-chat"));
   const surface = selectThreadRightPanelState(
     useRightPanelStore.getState().byThreadKey,
     original,
-  ).surfaces.find((entry) => entry.kind === "side-chat")!;
+  ).surfaces.find((entry) => entry.kind === "thread")!;
   function Harness() {
     const { closeSurface } = useRightPanelSurfaceClose({
       threadRef: original,
@@ -132,7 +132,7 @@ it("closes an existing chat pane without deleting an unused ordinary chat", asyn
   expect(fixture.deleted).toEqual([]);
   expect(
     selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, original).surfaces.some(
-      (entry) => entry.kind === "side-chat",
+      (entry) => entry.kind === "thread",
     ),
   ).toBe(false);
 });

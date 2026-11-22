@@ -69,15 +69,13 @@ export function useRightPanelSurfaceClose(input: {
         terminalActions.closeTerminalSession(terminalId, ref);
       }
     }
-    const chat =
-      surface.kind === "side-chat"
-        ? readThreadShell(scopeThreadRef(ref.environmentId, surface.threadId))
-        : null;
     if (
-      surface.kind === "side-chat" &&
-      readEnvironmentScope(ref.environmentId, AuthOrchestrationOperateScope) &&
-      chat?.lineage.sideChat === true &&
-      chat.lineage.parentThreadId === ref.threadId
+      surface.kind === "thread" &&
+      // Only a side chat the shell still lists is thrown away with its tab; a subagent belongs to
+      // its parent's work, and an unlisted side chat is already deleted.
+      readThreadShell(scopeThreadRef(ref.environmentId, surface.threadId))?.lineage.sideChat ===
+        true &&
+      readEnvironmentScope(ref.environmentId, AuthOrchestrationOperateScope)
     ) {
       // The server keeps a side chat with a run or message. Reopen skips one it deleted.
       void deleteThread({
