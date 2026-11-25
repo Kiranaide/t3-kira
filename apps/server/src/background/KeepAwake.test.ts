@@ -46,3 +46,12 @@ it.each([
 ])("awake preference always=%s agents=%s busy=%s holds=%s", (always, agents, busy, expected) => {
   expect(KeepAwake.keepAwakeWanted({ always, agents }, busy)).toBe(expected);
 });
+
+describe("KeepAwake.inhibitorCommand", () => {
+  it("runs PowerShell by its System32 path on Windows", () => {
+    expect(
+      KeepAwake.inhibitorCommand("win32", 1, false, { SYSTEMROOT: String.raw`D:\Windows` })
+        ?.command,
+    ).toBe(String.raw`D:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`);
+  });
+});
